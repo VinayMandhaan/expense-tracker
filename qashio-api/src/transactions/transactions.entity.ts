@@ -14,6 +14,7 @@ export class Transactions {
         type: 'enum', 
         enum: ['income', 'expense'] 
     })
+    type: 'income' | 'expense';
     @ManyToOne(() => Categories, (c) => c.transactions)
     category: Categories;
     @CreateDateColumn() 
