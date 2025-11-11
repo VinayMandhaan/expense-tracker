@@ -2,7 +2,6 @@ import { Categories } from "src/categories/categories.entity";
 import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 
-
 @Entity('transactions')
 export class Transactions {
     @PrimaryGeneratedColumn('uuid') 
@@ -11,7 +10,8 @@ export class Transactions {
     amount: number
     @Column({ type: 'date' }) 
     date: string
-    @Column({ type: 'enum', 
+    @Column({ 
+        type: 'enum', 
         enum: ['income', 'expense'] 
     })
     @ManyToOne(() => Categories, (c) => c.transactions)
