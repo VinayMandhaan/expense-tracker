@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, Query } from "@nestjs/common";
 import { TransactionsService } from "./transactions.service";
 import { CreateTransactionDto } from "./dto/create-transaction.dto";
 import { QueryTransactionDto } from "./dto/query-transaction.dto";
@@ -21,17 +21,17 @@ export class TransactionsController {
     }
 
     @Get(':id') 
-    getTransaction(@Param('id') id: string) {
+    getTransaction(@Param('id', new ParseUUIDPipe()) id: string) {
         return this.transactionService.getTransaction(id)
     }
 
     @Put(':id') 
-    update(@Param('id') id: string, @Body() dto: UpdateTransactionDto) {
+    update(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateTransactionDto) {
         return this.transactionService.update(id, dto)
     }
 
     @Delete(':id') 
-    deleteTransaction(@Param('id') id: string) {
+    deleteTransaction(@Param('id', new ParseUUIDPipe()) id: string) {
         return this.transactionService.deleteTransaction(id)
     }
 
