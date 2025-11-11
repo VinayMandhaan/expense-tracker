@@ -6,20 +6,24 @@ import { Categories } from "src/categories/categories.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { QueryTransactionDto } from "./dto/query-transaction.dto";
 import { UpdateTransactionDto } from "./dto/update-transaction.dto";
+import { KafkaProducer } from "src/kafka/kafka.producer";
 
 
 @Injectable()
 export class TransactionsService {
     constructor(
         @InjectRepository(Transactions) private transactionRepo: Repository<Transactions>,
-        @InjectRepository(Categories) private categoryRepo: Repository<Categories>
+        @InjectRepository(Categories) private categoryRepo: Repository<Categories>,
+        private readonly kafkaProducer: KafkaProducer,
     ) { }
 
     async create(dto: CreateTransactionDto) {
         let category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } })
         if (!category) throw new NotFoundException('category not found')
         let transactionRequest = this.transactionRepo.create({ amount: dto.amount, date: dto.date, type: dto.type, category: category })
-        return this.transactionRepo.save(transactionRequest)
+        const result =  await this.transactionRepo.save(transactionRequest)
+        await this.kafkaProducer.send('transactions.created', result)
+        return result
     }
 
     async getAll(q: QueryTransactionDto) {
