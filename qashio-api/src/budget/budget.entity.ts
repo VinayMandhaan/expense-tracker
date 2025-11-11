@@ -9,9 +9,9 @@ export class Budget {
     @Column('numeric')
     amount: number
     @Column({ type: 'date' })
-    periodStart: string
+    startDate: string
     @Column({ type: 'date' })
-    periodEnd: string
+    endDate: string
     @ManyToOne(() => Categories, (c) => c.budgets)
     category: Categories
 }

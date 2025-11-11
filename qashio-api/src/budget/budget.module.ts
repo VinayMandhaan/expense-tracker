@@ -1,4 +1,13 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Budget } from './budget.entity';
+import { BudgetService } from './budget.service';
+import { BudgetController } from './budget.controller';
 
-@Module({})
-export class BudgetModule {}
+@Module({
+    imports: [TypeOrmModule.forFeature([Budget])],
+    controllers: [BudgetController],
+    providers: [BudgetService],
+    exports: [BudgetService],
+})
+export class BudgetModule { }
