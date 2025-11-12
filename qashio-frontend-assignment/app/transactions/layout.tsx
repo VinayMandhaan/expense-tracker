@@ -5,5 +5,5 @@ export default function TransactionsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <PageLayout>{children}</PageLayout>;
-} 
+  return <PageLayout activeNav="transactions">{children}</PageLayout>;
+}
