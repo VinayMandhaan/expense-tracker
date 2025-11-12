@@ -21,8 +21,11 @@ export class TransactionsService {
         let category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } })
         if (!category) throw new NotFoundException('category not found')
         let transactionRequest = this.transactionRepo.create({ amount: dto.amount, date: dto.date, type: dto.type, category: category })
-        const result =  await this.transactionRepo.save(transactionRequest)
-        await this.kafkaProducer.send('transactions.created', result)
+        const result = await this.transactionRepo.save(transactionRequest)
+        // await this.kafkaProducer.send('transactions.created', result)
+        this.kafkaProducer
+        .send('transactions.created', result)
+        .catch(err => Logger.error('Kafka publish failed', err))
         return result
     }
 
@@ -41,9 +44,11 @@ export class TransactionsService {
             where.date = Between(from ?? to, to ?? from)
         }
 
-        const [items, total] = await this.transactionRepo.findAndCount({ where, relations: {
-            category:true
-        }, take: limit, skip })
+        const [items, total] = await this.transactionRepo.findAndCount({
+            where, relations: {
+                category: true
+            }, take: limit, skip
+        })
 
         return {
             items,
@@ -52,16 +57,18 @@ export class TransactionsService {
     }
 
     async getTransaction(id: string) {
-        const transactionRequest = await this.transactionRepo.findOne({ where: { id }, relations: {
-            category: true
-        } })
+        const transactionRequest = await this.transactionRepo.findOne({
+            where: { id }, relations: {
+                category: true
+            }
+        })
         if (!transactionRequest) throw new NotFoundException('transaction not found')
         return transactionRequest
     }
 
     async update(id: string, dto: UpdateTransactionDto) {
         const transactionRequest = await this.getTransaction(id)
-        Logger.warn(transactionRequest,"Transaction")
+        Logger.warn(transactionRequest, "Transaction")
         if (dto.categoryId) {
             let category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } })
             if (!category) throw new NotFoundException('category not found');
