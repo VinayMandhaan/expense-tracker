@@ -11,3 +11,17 @@ export const NAV_ITEMS: Array<{
         { key: 'transactions', label: 'Transactions', href: '/transactions', icon: ApartmentIcon },
         { key: 'categories', label: 'Categories', href: '/categories', icon: CategoryIcon },
     ];
+
+export const extractErrorMessage = (err: unknown, fallback: string) => {
+    if (err instanceof Error) {
+        try {
+            const parsed = JSON.parse(err.message)
+            const message = parsed?.error?.message ?? parsed?.message
+            if (Array.isArray(message)) return message.join(', ')
+            if (typeof message === 'string') return message
+        } catch {
+        }
+        if (err.message) return err.message
+    }
+    return fallback
+}
