@@ -8,6 +8,24 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { ReactNode, useState } from 'react';
 
 // Create a custom theme
+declare module '@mui/material/styles' {
+  interface Palette {
+    layout: {
+      border: string;
+      borderLight: string;
+      borderDark: string;
+    };
+  }
+  interface PaletteOptions {
+    layout?: {
+      border?: string;
+      borderLight?: string;
+      borderDark?: string;
+    };
+  }
+}
+
+
 const theme = createTheme({
   palette: {
     primary: {
@@ -18,6 +36,11 @@ const theme = createTheme({
     },
     background: {
       default: '#f8f9fa',
+    },
+    layout: {
+      border: '#d0d0d0',
+      borderLight: '#e0e0e0',
+      borderDark: '#f5f5f5',
     },
   },
   typography: {
