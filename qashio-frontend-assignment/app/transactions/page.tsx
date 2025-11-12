@@ -1,36 +1,64 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
-import { Box, Paper, Stack, Typography, Button, TextField, InputAdornment, Chip } from '@mui/material';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  Box,
+  Paper,
+  Stack,
+  Typography,
+  Button,
+  TextField,
+  InputAdornment,
+  Chip,
+  MenuItem,
+} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
 import Link from 'next/link';
 import TransactionDrawer from '../components/TransactionDrawer';
 import PrimaryActionButton from '../components/PrimaryActionButton';
-import { Paginated, Transaction } from '../types';
+import { Paginated, Transaction, Category } from '../types';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '@/lib/api';
 
-const filterButtons = ['Date', 'Reference', 'Amount', 'Status']
+type FilterOption = { label: string; value: string }
+const typeOptions: FilterOption[] = [
+  { label: 'All', value: '' },
+  { label: 'Income', value: 'income' },
+  { label: 'Expense', value: 'expense' },
+]
 
-function FilterPill({ label }: { label: string }) {
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  options: FilterOption[]
+  onChange: (value: string) => void
+  disabled?: boolean
+}) {
   return (
-    <Button
-      variant="text"
-      endIcon={<KeyboardArrowDownIcon />}
-      sx={{
-        textTransform: 'none',
-        color: '#6f6f74',
-        fontWeight: 500,
-        borderRadius: 2,
-        px: 1.5,
-      }}
+    <TextField
+      select
+      size="small"
+      label={label}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      disabled={disabled}
+      sx={{ minWidth: 150 }}
     >
-      {label}
-    </Button>
+      {options.map((option) => (
+        <MenuItem key={option.value || 'all'} value={option.value}>
+          {option.label}
+        </MenuItem>
+      ))}
+    </TextField>
   )
 }
 
@@ -60,6 +88,8 @@ export default function TransactionsPage() {
     page: 0,
     pageSize: 10,
   })
+  const [typeFilter, setTypeFilter] = useState<string>('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('')
 
   const formatAmount = useCallback((value?: string | number | null) => {
     const amount = typeof value === 'number' ? value : typeof value === 'string' ? Number.parseFloat(value) : NaN
@@ -67,14 +97,29 @@ export default function TransactionsPage() {
     return amount.toLocaleString()
   }, [])
 
+  const { data: categoriesData, isLoading: isCategoriesLoading } = useQuery({
+    queryKey: ['categories', 'list'],
+    queryFn: () => apiGet<Category[]>('/categories'),
+  })
+
+  const categoryOptions = useMemo<FilterOption[]>(() => {
+    const opts = categoriesData?.map((category) => ({
+      label: category.name,
+      value: category.id,
+    })) ?? []
+    return [{ label: 'All', value: '' }, ...opts]
+  }, [categoriesData])
+
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['transactions', paginationModel.page, paginationModel.pageSize, q],
+    queryKey: ['transactions', paginationModel.page, paginationModel.pageSize, q, typeFilter, categoryFilter],
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(paginationModel.page + 1),
         limit: String(paginationModel.pageSize),
       })
       if (q.trim()) params.set('search', q.trim())
+      if (typeFilter) params.set('type', typeFilter)
+      if (categoryFilter) params.set('categoryId', categoryFilter)
       return apiGet<Paginated<Transaction>>(`/transactions?${params.toString()}`)
     },
   })
@@ -82,6 +127,26 @@ export default function TransactionsPage() {
   const rows = data?.items ?? []
   const totalRows = data?.meta.total ?? 0
   const errorMessage = error ? error.message : 'Something went wrong'
+
+  const resetToFirstPage = useCallback(() => {
+    setPaginationModel((prev) => (prev.page === 0 ? prev : { ...prev, page: 0 }))
+  }, [])
+
+  const handleTypeChange = useCallback(
+    (value: string) => {
+      setTypeFilter(value)
+      resetToFirstPage()
+    },
+    [resetToFirstPage],
+  )
+
+  const handleCategoryChange = useCallback(
+    (value: string) => {
+      setCategoryFilter(value)
+      resetToFirstPage()
+    },
+    [resetToFirstPage],
+  )
 
   const columns: GridColDef[] = [
     {
@@ -177,10 +242,20 @@ export default function TransactionsPage() {
               },
             }}
           />
-          <Stack direction="row" spacing={1} flexWrap="wrap">
-            {filterButtons.map((label) => (
-              <FilterPill key={label} label={label} />
-            ))}
+          <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+            <FilterSelect
+              label="Type"
+              value={typeFilter}
+              options={typeOptions}
+              onChange={handleTypeChange}
+            />
+            <FilterSelect
+              label="Category"
+              value={categoryFilter}
+              options={categoryOptions}
+              onChange={handleCategoryChange}
+              disabled={isCategoriesLoading && categoryOptions.length === 1}
+            />
           </Stack>
         </Stack>
 
@@ -218,7 +293,13 @@ export default function TransactionsPage() {
               columns={columns}
               paginationMode="server"
               paginationModel={paginationModel}
-              onPaginationModelChange={setPaginationModel}
+              onPaginationModelChange={(model) =>
+                setPaginationModel((prev) =>
+                  prev.page === model.page && prev.pageSize === model.pageSize
+                    ? prev
+                    : { page: model.page, pageSize: model.pageSize },
+                )
+              }
               pageSizeOptions={[10, 25, 40]}
               checkboxSelection
               disableColumnMenu
