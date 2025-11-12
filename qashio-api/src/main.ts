@@ -7,6 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.enableCors()
   const config = new DocumentBuilder()
     .setTitle('Expense Tracker API')
     .setDescription('Simple expense tracker endpoints')
