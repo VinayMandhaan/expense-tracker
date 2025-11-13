@@ -15,7 +15,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid';
 import Link from 'next/link';
 import TransactionDrawer from '../components/TransactionDrawer';
 import PrimaryActionButton from '../components/PrimaryActionButton';
@@ -88,6 +88,9 @@ export default function TransactionsPage() {
     page: 0,
     pageSize: 10,
   })
+  const [sortModel, setSortModel] = useState<GridSortModel>([
+    { field: 'date', sort: 'desc' },
+  ])
   const [typeFilter, setTypeFilter] = useState<string>('')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
 
@@ -110,8 +113,16 @@ export default function TransactionsPage() {
     return [{ label: 'All', value: '' }, ...opts]
   }, [categoriesData])
 
+  const sortParam = useMemo(() => {
+    const activeSorts = sortModel.filter(item => item.sort)
+
+    const sortStrings = activeSorts.map(item => `${item.field}:${item.sort}`)
+
+    return sortStrings.join(',')
+  }, [sortModel])
+
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['transactions', paginationModel.page, paginationModel.pageSize, q, typeFilter, categoryFilter],
+    queryKey: ['transactions', paginationModel.page, paginationModel.pageSize, q, typeFilter, categoryFilter, sortParam],
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(paginationModel.page + 1),
@@ -120,6 +131,7 @@ export default function TransactionsPage() {
       if (q.trim()) params.set('search', q.trim())
       if (typeFilter) params.set('type', typeFilter)
       if (categoryFilter) params.set('categoryId', categoryFilter)
+      if (sortParam) params.set('sort', sortParam)
       return apiGet<Paginated<Transaction>>(`/transactions?${params.toString()}`)
     },
   })
@@ -129,8 +141,19 @@ export default function TransactionsPage() {
   const errorMessage = error ? error.message : 'Something went wrong'
 
   const resetToFirstPage = useCallback(() => {
-    setPaginationModel((prev) => (prev.page === 0 ? prev : { ...prev, page: 0 }))
+    setPaginationModel(prev => {
+      if (prev.page === 0) return prev
+      return { ...prev, page: 0 }
+    })
   }, [])
+
+  const handleSortModelChange = useCallback(
+    (model: GridSortModel) => {
+      setSortModel(model)
+      resetToFirstPage()
+    },
+    [resetToFirstPage],
+  )
 
   const handleTypeChange = useCallback(
     (value: string) => {
@@ -166,6 +189,7 @@ export default function TransactionsPage() {
       headerName: 'Category',
       flex: 1,
       minWidth: 180,
+      sortable: false,
       renderCell: (params) => (
         <>
           {params.row.category?.name ?? '-'}
@@ -292,6 +316,8 @@ export default function TransactionsPage() {
               getRowId={(row) => row.id}
               columns={columns}
               paginationMode="server"
+              sortingMode="server"
+              sortModel={sortModel}
               paginationModel={paginationModel}
               onPaginationModelChange={(model) =>
                 setPaginationModel((prev) =>
@@ -300,6 +326,7 @@ export default function TransactionsPage() {
                     : { page: model.page, pageSize: model.pageSize },
                 )
               }
+              onSortModelChange={handleSortModelChange}
               pageSizeOptions={[10, 25, 40]}
               checkboxSelection
               disableColumnMenu

@@ -18,4 +18,7 @@ export class QueryTransactionDto extends PaginationDto {
     @IsOptional()
     @IsString()
     search?: string
+    @IsOptional()
+    @IsString()
+    sort?: string;
 }

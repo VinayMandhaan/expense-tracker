@@ -7,6 +7,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { QueryTransactionDto } from "./dto/query-transaction.dto";
 import { UpdateTransactionDto } from "./dto/update-transaction.dto";
 import { KafkaProducer } from "src/kafka/kafka.producer";
+import { parseSort } from "src/common/util/sort.util";
 
 
 @Injectable()
@@ -24,8 +25,8 @@ export class TransactionsService {
         const result = await this.transactionRepo.save(transactionRequest)
         // await this.kafkaProducer.send('transactions.created', result)
         this.kafkaProducer
-        .send('transactions.created', result)
-        .catch(err => Logger.error('Kafka publish failed', err))
+            .send('transactions.created', result)
+            .catch(err => Logger.error('Kafka publish failed', err))
         return result
     }
 
@@ -36,7 +37,7 @@ export class TransactionsService {
         const from = q.from ?? q.to
         const to = q.to ?? q.from
         const where: any = {}
-
+        const order = Object.fromEntries(parseSort(q.sort))
         if (q.categoryId) where.category = { id: q.categoryId }
         if (q.type) where.type = q.type
 
@@ -45,7 +46,7 @@ export class TransactionsService {
         }
 
         const [items, total] = await this.transactionRepo.findAndCount({
-            where, relations: {
+            where, order: Object.keys(order).length ? order : { date: 'DESC' }, relations: {
                 category: true
             }, take: limit, skip
         })
