@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Paper,
@@ -82,6 +82,7 @@ function TypeChip({ type }: { type: Transaction['type'] }) {
 
 export default function TransactionsPage() {
   const [q, setQ] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<Transaction | null>(null)
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
@@ -99,6 +100,13 @@ export default function TransactionsPage() {
     if (!Number.isFinite(amount)) return '-'
     return amount.toLocaleString()
   }, [])
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQ((prev) => (prev === q ? prev : q))
+    }, 5000)
+    return () => clearTimeout(handler)
+  }, [q])
 
   const { data: categoriesData, isLoading: isCategoriesLoading } = useQuery({
     queryKey: ['categories', 'list'],
@@ -122,13 +130,13 @@ export default function TransactionsPage() {
   }, [sortModel])
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['transactions', paginationModel.page, paginationModel.pageSize, q, typeFilter, categoryFilter, sortParam],
+    queryKey: ['transactions', paginationModel.page, paginationModel.pageSize, debouncedQ, typeFilter, categoryFilter, sortParam],
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(paginationModel.page + 1),
         limit: String(paginationModel.pageSize),
       })
-      if (q.trim()) params.set('search', q.trim())
+      if (debouncedQ.trim()) params.set('search', debouncedQ.trim())
       if (typeFilter) params.set('type', typeFilter)
       if (categoryFilter) params.set('categoryId', categoryFilter)
       if (sortParam) params.set('sort', sortParam)
@@ -250,7 +258,7 @@ export default function TransactionsPage() {
           spacing={2}
         >
           <TextField
-            placeholder="Search..."
+            placeholder="Search using amount"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             sx={{ width: { xs: '100%', md: 300 } }}

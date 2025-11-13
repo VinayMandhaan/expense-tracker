@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { Transactions } from "./transactions.entity";
-import { Between, Repository } from "typeorm";
+import { Between, Like, Repository } from "typeorm";
 import { CreateTransactionDto } from "./dto/create-transaction.dto";
 import { Categories } from "src/categories/categories.entity";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -43,6 +43,14 @@ export class TransactionsService {
 
         if (from || to) {
             where.date = Between(from ?? to, to ?? from)
+        }
+
+        if (q.search) {
+            const search = q.search.trim()
+            const amount = Number(search)
+            if (!isNaN(amount)) {
+                where.amount = amount
+            }
         }
 
         const [items, total] = await this.transactionRepo.findAndCount({
