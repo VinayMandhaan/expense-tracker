@@ -25,3 +25,7 @@ export const extractErrorMessage = (err: unknown, fallback: string) => {
     }
     return fallback
 }
+
+export const formatCurrency = (value: number) => {
+  return `${value.toLocaleString()} AED`
+}
