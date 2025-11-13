@@ -33,8 +33,6 @@
 https://github.com/user-attachments/assets/717ee10e-dd82-4294-a3a9-0ea44bfa7ffe
 
 
-
-
 # 💸 Simple Expense Tracker
 
 Track your income, expenses, and budgets with a clean, event-driven architecture using **NestJS** and **Next.js**.
