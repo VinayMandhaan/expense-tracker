@@ -77,7 +77,7 @@ const RenderCategory = ({ summary }: { summary: CategorySummary }) => {
 }
 
 export default function CategoriesPage() {
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['categories', 'summary'],
     queryFn: () => apiGet<CategorySummary[]>('/categories/summary'),
   })
@@ -122,7 +122,37 @@ export default function CategoriesPage() {
             <CustomCard label="Active Budget" value={formatCurrency(stats.totalBudget)} />
             <CustomCard label="Remaining" value={formatCurrency(stats.totalRemaining)} />
           </Stack>
-          <Paper variant="outlined" sx={{ borderRadius: 3, borderColor: '#ececec', minHeight: 240 }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 3,
+              borderColor: '#ececec',
+              minHeight: 240,
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {isFetching && !isLoading && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  bgcolor: 'rgba(255,255,255,0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                  pointerEvents: 'none',
+                }}
+              >
+                <Stack spacing={1} alignItems="center">
+                  <CircularProgress size={24} />
+                  <Typography variant="caption" color="text.secondary">
+                    Updating…
+                  </Typography>
+                </Stack>
+              </Box>
+            )}
             {isLoading ? (
               <Stack alignItems="center" justifyContent="center" py={6} spacing={2}>
                 <CircularProgress size={32} />
