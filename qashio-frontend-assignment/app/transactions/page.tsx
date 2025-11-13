@@ -322,7 +322,13 @@ export default function TransactionsPage() {
           )}
         </Paper>
       </Box>
-      <TransactionDrawer open={open} onClose={() => setOpen(false)} tx={selected} />
+      <TransactionDrawer
+        open={open}
+        onClose={() => setOpen(false)}
+        selectedData={selected}
+        onUpdated={(updated) => setSelected(updated)}
+        onDeleted={() => setSelected(null)}
+      />
     </>
   )
 }
