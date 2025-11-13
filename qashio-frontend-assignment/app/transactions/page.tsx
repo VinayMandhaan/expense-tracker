@@ -142,6 +142,7 @@ export default function TransactionsPage() {
       if (sortParam) params.set('sort', sortParam)
       return apiGet<Paginated<Transaction>>(`/transactions?${params.toString()}`)
     },
+    placeholderData: (prev) => prev
   })
 
   const rows = data?.items ?? []
@@ -319,19 +320,19 @@ export default function TransactionsPage() {
             </Stack>
           ) : data?.items?.length == 0 ? (
             <Stack alignItems="center" justifyContent="center" py={6} spacing={1}>
-                <Typography fontWeight={600}>No transactions yet</Typography>
-                <Typography color="text.secondary" variant="body2">
-                  Create your first transaction to start tracking budgets.
-                </Typography>
-                <PrimaryActionButton
-                  startIcon={<AddIcon />}
-                  component={Link}
-                  href="/transactions/new"
-                  sx={{ mt: 1 }}
-                >
-                  New Transaction
-                </PrimaryActionButton>
-              </Stack>
+              <Typography fontWeight={600}>No transactions yet</Typography>
+              <Typography color="text.secondary" variant="body2">
+                Create your first transaction to start tracking budgets.
+              </Typography>
+              <PrimaryActionButton
+                startIcon={<AddIcon />}
+                component={Link}
+                href="/transactions/new"
+                sx={{ mt: 1 }}
+              >
+                New Transaction
+              </PrimaryActionButton>
+            </Stack>
           ) : (
             <DataGrid
               rows={rows}
@@ -342,13 +343,7 @@ export default function TransactionsPage() {
               sortingMode="server"
               sortModel={sortModel}
               paginationModel={paginationModel}
-              onPaginationModelChange={(model) =>
-                setPaginationModel((prev) =>
-                  prev.page === model.page && prev.pageSize === model.pageSize
-                    ? prev
-                    : { page: model.page, pageSize: model.pageSize },
-                )
-              }
+              onPaginationModelChange={setPaginationModel}
               onSortModelChange={handleSortModelChange}
               pageSizeOptions={[10, 25, 40]}
               checkboxSelection
