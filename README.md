@@ -6,7 +6,9 @@
 - To run FE Next.js, run yarn dev in the qashio-frontend-assignment
 
 # Features Completed In This Task
+
 ## BE
+
 - CRUD Operations and DTO Validations for Transactions, Category and Budget.
 - Get Spending Summary Of Current Period
 - Pagination, Sorting and Filtering
@@ -14,12 +16,17 @@
 - ORM: TypeORM, DB: Postgres (Serverless)
 
 ## FE
+
 - Integrated API using Next.js API and React Query
 - MUI Components for UI
 - Custom Input Validations and Error Handling
 - Modular Components
 - Pagination Filtering and Sorting
 - Summary Report for Current Active Budget
+
+## Swagger Docs
+
+- http://localhost:3001/docs
 
 ## Demo
 
