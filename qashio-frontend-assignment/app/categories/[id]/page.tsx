@@ -30,7 +30,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet, apiSend } from '@/lib/api';
 import type { CategorySummary } from '@/app/types';
-import { extractErrorMessage, formatCurrency } from '@/lib/utils';
+import { extractErrorMessage, formatCurrency, toApiDate } from '@/lib/utils';
 import { CustomCard } from '@/app/components/CustomCard';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
@@ -63,7 +63,6 @@ export default function CategoryDetailPage() {
   const [budgetErrorMessage, setBudgetErrorMessage] = React.useState<string | null>(null)
   const [budgetSuccess, setBudgetSuccess] = React.useState(false)
 
-  const toApiDate = (date: Date | null) => (date ? date.toISOString().split('T')[0] : '')
   const resetBudgetForm = () => {
     setBudgetAmount('')
     setBudgetStartDate(null)

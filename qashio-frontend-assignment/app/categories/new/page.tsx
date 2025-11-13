@@ -22,7 +22,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useRouter } from 'next/navigation';
 import { apiSend } from '@/lib/api';
 import type { Category } from '@/app/types';
-import { extractErrorMessage } from '@/lib/utils';
+import { extractErrorMessage, toApiDate } from '@/lib/utils';
 
 export default function CreateCategoryPage() {
   const router = useRouter()
@@ -43,12 +43,6 @@ export default function CreateCategoryPage() {
   const [isBudgetSaving, setIsBudgetSaving] = React.useState(false)
   const [budgetSuccess, setBudgetSuccess] = React.useState(false)
   const [budgetError, setBudgetError] = React.useState<string | null>(null)
-
-  const toApiDate = (date: Date | null) => {
-    return date ? date.toISOString().split('T')[0] : ''
-  }
-
-
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()

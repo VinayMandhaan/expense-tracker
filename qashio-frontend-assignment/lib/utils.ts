@@ -29,3 +29,13 @@ export const extractErrorMessage = (err: unknown, fallback: string) => {
 export const formatCurrency = (value: number) => {
   return `${value.toLocaleString()} AED`
 }
+
+type DateLike = Date | { toDate: () => Date } | null | undefined
+
+export const toApiDate = (value: DateLike) => {
+  if (!value) return ''
+  const date = value instanceof Date ? value : typeof value === 'object' && value && typeof value.toDate === 'function' ? value.toDate() : null
+  if (!date) return ''
+  const normalized = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return normalized.toISOString().split('T')[0]
+}
