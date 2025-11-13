@@ -40,6 +40,7 @@ const RenderCategory = ({ summary }: { summary: CategorySummary }) => {
     <TableRow
       hover
       onClick={() => {
+        router.push(`/categories/${summary.category.id}`)
       }}
       sx={{ cursor: 'pointer' }}
     >
