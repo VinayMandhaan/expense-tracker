@@ -22,12 +22,15 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import PrimaryActionButton from '@/app/components/PrimaryActionButton';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiSend } from '@/lib/api';
 import type { CategorySummary } from '@/app/types';
 import { extractErrorMessage, formatCurrency, toApiDate } from '@/lib/utils';
@@ -39,6 +42,7 @@ export default function CategoryDetailPage() {
   const router = useRouter()
   const params = useParams<{ id: string }>()
   const categoryId = params?.id
+  const queryClient = useQueryClient()
   const {
     data: summary,
     isLoading,
@@ -62,6 +66,8 @@ export default function CategoryDetailPage() {
   const [isBudgetSaving, setIsBudgetSaving] = React.useState(false)
   const [budgetErrorMessage, setBudgetErrorMessage] = React.useState<string | null>(null)
   const [budgetSuccess, setBudgetSuccess] = React.useState(false)
+  const [budgetDeletionError, setBudgetDeletionError] = React.useState<string | null>(null)
+  const [deletingBudgetId, setDeletingBudgetId] = React.useState<string | null>(null)
 
   const resetBudgetForm = () => {
     setBudgetAmount('')
@@ -117,12 +123,36 @@ export default function CategoryDetailPage() {
       })
       setBudgetSuccess(true)
       refetch()
+      queryClient.invalidateQueries({ queryKey: ['categories', 'summary'] })
     } catch (err) {
       setBudgetErrorMessage(extractErrorMessage(err, 'Failed to create budget'))
     } finally {
       setIsBudgetSaving(false)
     }
   }
+
+  const handleBudgetDelete = React.useCallback(
+    async (budgetId: string) => {
+      if (!budgetId) {
+        return
+      }
+      if (!confirm('Delete this budget period?')) {
+        return
+      } 
+      setDeletingBudgetId(budgetId)
+      setBudgetDeletionError(null)
+      try {
+        await apiSend(`/budget/${budgetId}`, 'DELETE')
+        await refetch()
+        queryClient.invalidateQueries({ queryKey: ['categories', 'summary'] })
+      } catch (err) {
+        setBudgetDeletionError(extractErrorMessage(err, 'Failed to delete budget'))
+      } finally {
+        setDeletingBudgetId(null)
+      }
+    },
+    [refetch],
+  )
 
   if (!categoryId) {
     return (
@@ -268,6 +298,11 @@ export default function CategoryDetailPage() {
               </Stack>
             </Stack>
             <Divider sx={{ mt: 2 }} />
+            {budgetDeletionError && (
+              <Alert severity="error" sx={{ mx: 3, mt: 2 }}>
+                {budgetDeletionError}
+              </Alert>
+            )}
             <Table>
               <TableHead>
                 <TableRow>
@@ -301,11 +336,29 @@ export default function CategoryDetailPage() {
                         <TableCell>{formatCurrency(budget.spent)}</TableCell>
                         <TableCell>{formatCurrency(budget.remaining)}</TableCell>
                         <TableCell align="right">
-                          <Chip
-                            label={status}
-                            color={budget.remaining >= 0 ? 'success' : 'error'}
-                            size="small"
-                          />
+                          <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
+                            <Chip
+                              label={status}
+                              color={budget.remaining >= 0 ? 'success' : 'error'}
+                              size="small"
+                            />
+                            <Tooltip title="Delete budget">
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  disabled={deletingBudgetId === budget.id}
+                                  onClick={() => handleBudgetDelete(budget.id)}
+                                >
+                                  {deletingBudgetId === budget.id ? (
+                                    <CircularProgress size={18} />
+                                  ) : (
+                                    <DeleteOutlineIcon fontSize="small" />
+                                  )}
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     )
