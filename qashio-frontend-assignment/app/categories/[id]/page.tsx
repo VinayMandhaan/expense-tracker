@@ -17,16 +17,22 @@ import {
   CircularProgress,
   Alert,
   Button,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import PrimaryActionButton from '@/app/components/PrimaryActionButton';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiSend } from '@/lib/api';
 import type { CategorySummary } from '@/app/types';
 import { extractErrorMessage, formatCurrency } from '@/lib/utils';
 import { CustomCard } from '@/app/components/CustomCard';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 
 export default function CategoryDetailPage() {
@@ -44,6 +50,80 @@ export default function CategoryDetailPage() {
     queryFn: () => apiGet<CategorySummary>(`/categories/${categoryId}/summary`),
     enabled: Boolean(categoryId),
   })
+  const [budgetDialogOpen, setBudgetDialogOpen] = React.useState(false)
+  const [budgetAmount, setBudgetAmount] = React.useState('')
+  const [budgetStartDate, setBudgetStartDate] = React.useState<Date | null>(null)
+  const [budgetEndDate, setBudgetEndDate] = React.useState<Date | null>(null)
+  const [budgetErrors, setBudgetErrors] = React.useState({
+    amount: null as string | null,
+    startDate: null as string | null,
+    endDate: null as string | null,
+  })
+  const [isBudgetSaving, setIsBudgetSaving] = React.useState(false)
+  const [budgetErrorMessage, setBudgetErrorMessage] = React.useState<string | null>(null)
+  const [budgetSuccess, setBudgetSuccess] = React.useState(false)
+
+  const toApiDate = (date: Date | null) => (date ? date.toISOString().split('T')[0] : '')
+  const resetBudgetForm = () => {
+    setBudgetAmount('')
+    setBudgetStartDate(null)
+    setBudgetEndDate(null)
+    setBudgetErrors({ amount: null, startDate: null, endDate: null })
+    setBudgetErrorMessage(null)
+    setBudgetSuccess(false)
+  }
+  const openBudgetDialog = () => {
+    resetBudgetForm()
+    setBudgetDialogOpen(true)
+  }
+  const closeBudgetDialog = () => {
+    setBudgetDialogOpen(false)
+    resetBudgetForm()
+  }
+
+  const handleBudgetSubmit = async () => {
+    if (!summary) return
+    let hasError = false
+    const nextErrors = { amount: null as string | null, startDate: null as string | null, endDate: null as string | null }
+    const amountValue = Number.parseFloat(budgetAmount)
+    if (!budgetAmount.trim()) {
+      nextErrors.amount = 'Amount is required'
+      hasError = true
+    } else if (!Number.isFinite(amountValue) || amountValue <= 0) {
+      nextErrors.amount = 'Enter a valid amount'
+      hasError = true
+    }
+    if (!budgetStartDate) {
+      nextErrors.startDate = 'Start date is required'
+      hasError = true
+    }
+    if (!budgetEndDate) {
+      nextErrors.endDate = 'End date is required'
+      hasError = true
+    } else if (budgetStartDate && budgetEndDate < budgetStartDate) {
+      nextErrors.endDate = 'End date must be after start date'
+      hasError = true
+    }
+    setBudgetErrors(nextErrors)
+    if (hasError) return
+
+    setIsBudgetSaving(true)
+    setBudgetErrorMessage(null)
+    try {
+      await apiSend('/budget', 'POST', {
+        amount: amountValue,
+        categoryId: summary.category.id,
+        startDate: toApiDate(budgetStartDate),
+        endDate: toApiDate(budgetEndDate),
+      })
+      setBudgetSuccess(true)
+      refetch()
+    } catch (err) {
+      setBudgetErrorMessage(extractErrorMessage(err, 'Failed to create budget'))
+    } finally {
+      setIsBudgetSaving(false)
+    }
+  }
 
   if (!categoryId) {
     return (
@@ -116,7 +196,9 @@ export default function CategoryDetailPage() {
             {category.name}
           </Typography>
         </Stack>
-        <PrimaryActionButton startIcon={<AddIcon />}>Add Budget</PrimaryActionButton>
+        <PrimaryActionButton startIcon={<AddIcon />} onClick={openBudgetDialog}>
+          Add Budget
+        </PrimaryActionButton>
       </Stack>
 
       <Box sx={{ p: 4, pt: 3 }}>
@@ -235,6 +317,72 @@ export default function CategoryDetailPage() {
           </Paper>
         </Stack>
       </Box>
+
+      <Dialog open={budgetDialogOpen} onClose={closeBudgetDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>{budgetSuccess ? 'Budget Added' : 'Add a Budget'}</DialogTitle>
+        <DialogContent dividers>
+          {budgetSuccess ? (
+            <Stack spacing={1}>
+              <Alert severity="success">Budget created successfully!</Alert>
+              <Typography>
+                Budget updates will appear in this category overview right away.
+              </Typography>
+            </Stack>
+          ) : (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              {budgetErrorMessage && <Alert severity="error">{budgetErrorMessage}</Alert>}
+              <TextField
+                label="Budget Amount"
+                value={budgetAmount}
+                onChange={(e) => setBudgetAmount(e.target.value)}
+                type="number"
+                inputProps={{ min: 0, step: '0.01' }}
+                error={Boolean(budgetErrors.amount)}
+                helperText={budgetErrors.amount}
+                fullWidth
+              />
+              <DatePicker
+                label="Start Date"
+                value={budgetStartDate}
+                onChange={(value) => setBudgetStartDate(value ?? null)}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    error: Boolean(budgetErrors.startDate),
+                    helperText: budgetErrors.startDate,
+                  },
+                }}
+              />
+              <DatePicker
+                label="End Date"
+                value={budgetEndDate}
+                onChange={(value) => setBudgetEndDate(value ?? null)}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    error: Boolean(budgetErrors.endDate),
+                    helperText: budgetErrors.endDate,
+                  },
+                }}
+              />
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {budgetSuccess ? (
+            <PrimaryActionButton onClick={closeBudgetDialog}>Done</PrimaryActionButton>
+          ) : (
+            <>
+              <Button onClick={closeBudgetDialog} disabled={isBudgetSaving}>
+                Cancel
+              </Button>
+              <PrimaryActionButton onClick={handleBudgetSubmit} disabled={isBudgetSaving}>
+                {isBudgetSaving ? 'Saving...' : 'Save Budget'}
+              </PrimaryActionButton>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
     </>
   )
 }
