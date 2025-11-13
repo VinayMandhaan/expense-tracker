@@ -309,6 +309,21 @@ export default function TransactionsPage() {
                 Retry
               </Button>
             </Stack>
+          ) : data?.items?.length == 0 ? (
+            <Stack alignItems="center" justifyContent="center" py={6} spacing={1}>
+                <Typography fontWeight={600}>No transactions yet</Typography>
+                <Typography color="text.secondary" variant="body2">
+                  Create your first transaction to start tracking budgets.
+                </Typography>
+                <PrimaryActionButton
+                  startIcon={<AddIcon />}
+                  component={Link}
+                  href="/transactions/new"
+                  sx={{ mt: 1 }}
+                >
+                  New Transaction
+                </PrimaryActionButton>
+              </Stack>
           ) : (
             <DataGrid
               rows={rows}

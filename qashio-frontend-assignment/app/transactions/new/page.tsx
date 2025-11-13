@@ -53,13 +53,17 @@ export default function CreateTransactionPage() {
     event.preventDefault();
     if (!(Number(amount) > 0)) {
       setErrors((prev) => ({ ...prev, amount: 'Amount should be greater than 0' }))
+      setTransactionError('Amount should be greater than 0')
     } else if (!date) {
-      setErrors((prev) => ({ ...prev, amount: 'Date is required' }))
+      setErrors((prev) => ({ ...prev, date: 'Date is required' }))
+      setTransactionError('Date is required')
     } else if (!categoryId) {
-      setErrors((prev) => ({ ...prev, amount: 'Category is required' }))
+      setErrors((prev) => ({ ...prev, categoryId: 'Category is required' }))
+      setTransactionError('Category is required')
     } else {
       try {
         setSaving(true)
+        setTransactionError(null)
         await apiSend('/transactions', 'POST', {
           amount: Number(amount),
           date: date ? date.toISOString().split('T')[0] : '',
