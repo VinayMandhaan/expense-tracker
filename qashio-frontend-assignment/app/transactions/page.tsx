@@ -104,7 +104,7 @@ export default function TransactionsPage() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQ((prev) => (prev === q ? prev : q))
-    }, 5000)
+    }, 400)
     return () => clearTimeout(handler)
   }, [q])
 
