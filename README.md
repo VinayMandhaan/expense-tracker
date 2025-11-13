@@ -1,25 +1,25 @@
 # Steps To Run
 
-- ** To run the project kindly start the FE and BE server separately.
-- ** To start BE server, cd full-stack-task && cd qashio-api
-- ** Run  docker-compose up --build to start Nest Server
-- ** To run FE Next.js, run yarn dev in the qashio-frontend-assignment
+- To run the project kindly start the FE and BE server separately.
+- To start BE server, cd full-stack-task && cd qashio-api
+- Run  docker-compose up --build to start Nest Server
+- To run FE Next.js, run yarn dev in the qashio-frontend-assignment
 
 # Features Completed In This Task
 ## BE
-- ** CRUD Operations and DTO Validations for Transactions, Category and Budget.
-- ** Get Spending Summary Of Current Period
-- ** Pagination, Sorting and Filtering
-- ** Kafka Listner for Transaction Created
-- ** ORM: TypeORM, DB: Postgres (Serverless)
+- CRUD Operations and DTO Validations for Transactions, Category and Budget.
+- Get Spending Summary Of Current Period
+- Pagination, Sorting and Filtering
+- Kafka Listner for Transaction Created
+- ORM: TypeORM, DB: Postgres (Serverless)
 
 ## FE
-- ** Integrated API using Next.js API and React Query
-- ** MUI Components for UI
-- ** Custom Input Validations and Error Handling
-- ** Modular Components
-- ** Pagination Filtering and Sorting
-- ** Summary Report for Current Active Budget
+- Integrated API using Next.js API and React Query
+- MUI Components for UI
+- Custom Input Validations and Error Handling
+- Modular Components
+- Pagination Filtering and Sorting
+- Summary Report for Current Active Budget
 
 ## Demo
 
