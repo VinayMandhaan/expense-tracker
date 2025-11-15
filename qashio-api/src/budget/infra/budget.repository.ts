@@ -9,7 +9,7 @@ import { Categories } from '../../categories/infra/category.entity';
 export class BudgetRepository {
   constructor(
     @InjectRepository(Budget) private readonly repo: Repository<Budget>,
-  ) {}
+  ) { }
 
   async createBudget(dto: CreateBudgetDto) {
     const budget = this.repo.create({
@@ -23,21 +23,21 @@ export class BudgetRepository {
 
   async findByCategory(categoryId: string) {
     return this.repo.find({
-      where: { 
-        category: { 
-          id: categoryId 
-        } 
+      where: {
+        category: {
+          id: categoryId
+        }
       }
     })
   }
 
   async findByIdAndCategory(id: string, categoryId: string) {
     const budget = await this.repo.findOne({
-      where: { 
-        id, 
-        category: { 
-          id: categoryId 
-        } 
+      where: {
+        id,
+        category: {
+          id: categoryId
+        }
       }
     })
     if (!budget) {
