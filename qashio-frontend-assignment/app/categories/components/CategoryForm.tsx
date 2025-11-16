@@ -15,7 +15,7 @@ interface CategoryFormProps {
 
 export default function CategoryForm({ formId, defaultValues, onSubmit }: CategoryFormProps) {
   const { register, handleSubmit, formState: { errors } } = useForm<CategoryFormValues>({
-    defaultValues: defaultValues ?? { name: '' },
+    defaultValues: defaultValues ? defaultValues : { name: '' },
   })
 
   return (
