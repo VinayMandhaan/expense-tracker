@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { GridColDef } from '@mui/x-data-grid';
+import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { TypeChip } from '../components/TypeChip';
 import { Transaction } from '../types';
 
@@ -25,7 +25,7 @@ export function useTransactionColumns(): GridColDef[] {
         flex: 1,
         minWidth: 150,
         valueGetter: (params) => params?.row?.date ?? '',
-        renderCell: (params) => formatDate(params.row.date),
+        renderCell: (params: GridRenderCellParams<Transaction>) => formatDate(params.row.date),
       },
       {
         field: 'category',
@@ -33,15 +33,15 @@ export function useTransactionColumns(): GridColDef[] {
         flex: 1,
         minWidth: 180,
         sortable: false,
-        renderCell: (params) => params.row.category?.name ?? '-',
+        renderCell: (params: GridRenderCellParams<Transaction>) => params.row.category?.name ?? '-',
       },
       {
         field: 'type',
         headerName: 'Type',
         flex: 0.6,
         minWidth: 140,
-        renderCell: (params) => {
-          const transactionType = params.row.type as Transaction['type']
+        renderCell: (params: GridRenderCellParams<Transaction>) => {
+          const transactionType = params.row.type
           return <TypeChip type={transactionType} />
         },
         sortable: false,
@@ -52,7 +52,7 @@ export function useTransactionColumns(): GridColDef[] {
         flex: 0.6,
         minWidth: 150,
         valueGetter: (params) => params?.row?.amount ?? 0,
-        renderCell: (params) => {
+        renderCell: (params: GridRenderCellParams<Transaction>) => {
           const formatted = formatAmount(params.row.amount)
           return formatted === '-' ? '-' : `${formatted} AED`
         },

@@ -1,9 +1,9 @@
 import * as React from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiSend } from '@/lib/api'
 import { extractErrorMessage } from '@/lib/utils'
 import { useCategories } from '../../hooks/useCategories'
 import { Transaction, TransactionFormValues } from '../types'
+import { deleteTransaction, updateTransaction } from '../request/transactionRequest'
 
 interface UseTransactionDrawerOptions {
     selectedData?: Transaction | null
@@ -42,7 +42,7 @@ export function useTransactionDrawer({ selectedData, onUpdated, onDeleted, onClo
                 type: values.type,
                 categoryId: values.categoryId || undefined,
             }
-            return apiSend<Transaction>(`/transactions/${selectedData.id}`, 'PUT', payload)
+            return updateTransaction(selectedData.id, payload)
         },
         onSuccess: (updated) => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
@@ -58,7 +58,7 @@ export function useTransactionDrawer({ selectedData, onUpdated, onDeleted, onClo
     const deleteMutation = useMutation({
         mutationFn: async () => {
             if (!selectedData) throw new Error('No transaction selected')
-            await apiSend(`/transactions/${selectedData.id}`, 'DELETE')
+            await deleteTransaction(selectedData.id)
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
@@ -89,8 +89,7 @@ export function useTransactionDrawer({ selectedData, onUpdated, onDeleted, onClo
         ]
         : []
 
-    const lastUpdatedLabel = selectedData
-        ? `Last updated ${new Date(selectedData.updatedAt).toDateString()} ${new Date(selectedData.updatedAt).toLocaleTimeString()}` : ''
+    const lastUpdatedLabel = selectedData ? `Last updated ${new Date(selectedData.updatedAt).toDateString()} ${new Date(selectedData.updatedAt).toLocaleTimeString()}` : ''
 
     const startEditing = () => {
         setErrorMessage(null)

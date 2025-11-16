@@ -1,5 +1,5 @@
-import { Category } from "../categories/types";
-import { TransactionType } from "../types";
+import { Category } from '../categories/types'
+import { TransactionType } from '../types'
 
 export type FilterOption = { label: string; value: string }
 export interface TransactionFormValues {
@@ -34,4 +34,18 @@ export interface UseTransactionsOptions {
     type?: string
     categoryId?: string
     sort?: string
+}
+
+export interface CreateTransactionPayload {
+    amount: number
+    date: string
+    type: TransactionType
+    categoryId: string
+}
+
+export interface UpdateTransactionPayload {
+    amount: number
+    date: string
+    type: TransactionFormValues['type']
+    categoryId?: string
 }

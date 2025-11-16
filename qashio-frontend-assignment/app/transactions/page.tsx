@@ -1,65 +1,40 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box, Paper, Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { GridPaginationModel, GridSortModel } from '@mui/x-data-grid';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import CustomDrawer from '../components/CustomDrawer';
 import PrimaryActionButton from '../components/PrimaryActionButton';
-import { useCategories } from '../hooks/useCategories';
 import { useTransactions } from '../hooks/useTransactions';
+import { useTransactionQueryState } from './hooks/useTransactionQueryState';
+import { useCategoryFilterOptions } from './hooks/useCategoryFilterOptions';
 import { TransactionsFilters } from './components/TransactionsFilters';
 import { TransactionsTable } from './components/TransactionsTable';
-import type { FilterOption, Transaction } from './types';
+import type { Transaction } from './types';
 import { typeOptions } from './constants';
 import PageHeader from '../components/PageHeader';
 import ErrorState from '../components/ErrorState';
 import LoadingState from '../components/LoadingState';
 import EmptyState from '../components/EmptyState';
-import { parseSortParam, sortModelToString, areSortModelsEqual } from './utils/sort.util';
-import { createTransactionQueryHandlers } from './utils/queryHandlers';
+import { sortModelToString } from './utils/sort.util';
 
 export default function TransactionsPage() {
-  const searchParams = useSearchParams()
-  const pathname = usePathname()
-  const router = useRouter()
-  const initialSearch = searchParams.get('search') || ''
-  const [q, setQ] = useState(initialSearch)
-  const [debouncedQ, setDebouncedQ] = useState(initialSearch)
-  const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState<Transaction | null>(null)
-  const initialPage = Math.max(0, Number(searchParams.get('page') || '1') - 1)
-  const initialPageSize = Number(searchParams.get('limit') || '10')
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
-    page: Number.isNaN(initialPage) ? 0 : initialPage,
-    pageSize: Number.isNaN(initialPageSize) ? 10 : initialPageSize,
-  })
-  const [sortModel, setSortModel] = useState<GridSortModel>(() => {
-    return parseSortParam(searchParams.get('sort'))
-  })
-  const [typeFilter, setTypeFilter] = useState<string>(searchParams.get('type') || '')
-  const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('categoryId') || '')
-  const lastSearchRef = useRef(initialSearch.trim())
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedQ((prev) => (prev === q ? prev : q))
-    }, 400)
-    return () => clearTimeout(handler)
-  }, [q])
-
-  const { data: categoriesData, isLoading: isCategoriesLoading } = useCategories()
-  const categoryOptions = useMemo<FilterOption[]>(() => {
-    const opts = categoriesData?.map((category) => ({
-      label: category.name,
-      value: category.id,
-    })) ?? []
-    return [{ label: 'All', value: '' }, ...opts]
-  }, [categoriesData])
-
+  const {
+    q,
+    setQ,
+    debouncedQ,
+    typeFilter,
+    categoryFilter,
+    paginationModel,
+    sortModel,
+    handleSortModelChange,
+    handleTypeChange,
+    handleCategoryChange,
+    handlePaginationChange,
+  } = useTransactionQueryState()
+  const { categoryOptions, isCategoriesLoading } = useCategoryFilterOptions()
   const sortParam = useMemo(() => sortModelToString(sortModel), [sortModel])
   const {
     data,
@@ -77,61 +52,17 @@ export default function TransactionsPage() {
     sort: sortParam || undefined,
   })
 
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState<Transaction | null>(null)
+
   const rows = data?.items ?? []
   const totalRows = data?.meta.total ?? 0
   const errorMessage = error ? error.message : 'Something went wrong'
-  const {
-    resetToFirstPage,
-    handleSortModelChange,
-    handleTypeChange,
-    handleCategoryChange,
-    handlePaginationChange,
-    updateQueryParams,
-  } = createTransactionQueryHandlers({
-    searchParams,
-    pathname,
-    router,
-    setPaginationModel,
-    setSortModel,
-    setTypeFilter,
-    setCategoryFilter,
-  })
 
   const handleRowClick = React.useCallback((transaction: Transaction) => {
     setSelected(transaction)
     setOpen(true)
   }, [])
-
-  useEffect(() => {
-    const paramsSearch = searchParams.get('search') || ''
-    setQ((prev) => (prev === paramsSearch ? prev : paramsSearch))
-    setDebouncedQ((prev) => (prev === paramsSearch ? prev : paramsSearch))
-    const paramsType = searchParams.get('type') || ''
-    setTypeFilter((prev) => (prev === paramsType ? prev : paramsType))
-    const paramsCategory = searchParams.get('categoryId') || ''
-    setCategoryFilter((prev) => (prev === paramsCategory ? prev : paramsCategory))
-    const nextPage = Math.max(0, Number(searchParams.get('page') || '1') - 1)
-    const nextLimit = Number(searchParams.get('limit') || '10')
-    setPaginationModel((prev) => (
-      prev.page === nextPage && prev.pageSize === nextLimit
-        ? prev
-        : {
-          page: Number.isNaN(nextPage) ? 0 : nextPage,
-          pageSize: Number.isNaN(nextLimit) ? prev.pageSize : nextLimit,
-        }
-    ))
-    const nextSort = parseSortParam(searchParams.get('sort'))
-    setSortModel((prev) => (areSortModelsEqual(prev, nextSort) ? prev : nextSort))
-  }, [searchParams])
-
-  useEffect(() => {
-    const trimmed = debouncedQ.trim()
-    if (trimmed === lastSearchRef.current) {
-      return
-    }
-    lastSearchRef.current = trimmed
-    updateQueryParams({ search: trimmed || null, page: '1' })
-  }, [debouncedQ, updateQueryParams])
 
   return (
     <>
@@ -180,9 +111,7 @@ export default function TransactionsPage() {
           ) : rows.length === 0 ? (
             <EmptyState title="No transactions yet" description="Create your first transaction to start tracking budgets."
               action={(
-                <PrimaryActionButton startIcon={<AddIcon />} component={Link} href="/transactions/new" sx={{ mt: 1 }}>
-                  New Transaction
-                </PrimaryActionButton>
+                <PrimaryActionButton startIcon={<AddIcon />} component={Link} href="/transactions/new" sx={{ mt: 1 }}> New Transaction</PrimaryActionButton>
               )}
             />
           ) : (
