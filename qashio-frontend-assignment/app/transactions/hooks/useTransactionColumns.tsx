@@ -4,26 +4,10 @@ import { useMemo } from 'react';
 import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { TypeChip } from '../components/TypeChip';
 import { Transaction } from '../types';
+import { formatAmount, formatDate } from '../utils/formatData';
 
 export function useTransactionColumns(): GridColDef<Transaction>[] {
   return useMemo(() => {
-    const formatAmount = (value?: number | null) => {
-      if (value === null || value === undefined) {
-        return '-'
-      }
-      return Number(value).toLocaleString()
-    }
-    const formatDate = (value?: string | null) => {
-      if (!value) {
-        return '-'
-      }
-      const date = new Date(value)
-      if (Number.isNaN(date.getTime())) {
-        return value
-      }
-      return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-    }
-
     const columns: GridColDef<Transaction>[] = [
       {
         field: 'date',

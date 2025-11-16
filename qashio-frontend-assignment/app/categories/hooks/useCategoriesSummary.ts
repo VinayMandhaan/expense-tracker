@@ -1,12 +1,11 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
-import { CategorySummary } from '../types';
+import { getCategoriesSummary } from '../request/categoryRequest';
 
 export function useCategoriesSummary() {
   return useQuery({
     queryKey: ['categories', 'summary'],
-    queryFn: () => apiGet<CategorySummary[]>('/categories/summary'),
+    queryFn: () => getCategoriesSummary(),
   })
 }

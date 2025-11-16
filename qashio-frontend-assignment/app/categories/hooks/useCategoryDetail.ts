@@ -1,16 +1,14 @@
 import * as React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiGet } from '@/lib/api'
-import { extractErrorMessage, toApiDate } from '@/lib/utils'
 import { CategorySummary } from '../types'
-import { BudgetFormValues } from '../components/BudgetForm'
-import { createCategoryBudget, deleteCategoryBudget } from '../request/categoryRequest'
+import { getCategorySummary } from '../request/categoryRequest'
+import { useCategoryMutations } from './useCategoryMutations'
 
 export function useCategoryDetail(categoryId?: string) {
   const queryClient = useQueryClient()
   const query = useQuery({
     queryKey: ['category', 'summary', categoryId],
-    queryFn: () => apiGet<CategorySummary>(`/categories/${categoryId}/summary`),
+    queryFn: () => (categoryId ? getCategorySummary(categoryId) : Promise.reject(new Error('No category'))),
     enabled: Boolean(categoryId),
   })
 
@@ -36,54 +34,15 @@ export function useCategoryDetail(categoryId?: string) {
     resetBudgetForm()
   }, [resetBudgetForm])
 
-  const handleBudgetSubmit = React.useCallback(
-    async (values: BudgetFormValues) => {
-      if (!query.data || !values.startDate || !values.endDate) {
-        return
-      }
-      setIsBudgetSaving(true)
-      setBudgetErrorMessage(null)
-      try {
-        await createCategoryBudget({
-          amount: values.amount,
-          categoryId: query.data.category.id,
-          startDate: toApiDate(values.startDate),
-          endDate: toApiDate(values.endDate),
-        })
-        setBudgetSuccess(true)
-        await query.refetch()
-        queryClient.invalidateQueries({ queryKey: ['categories', 'summary'] })
-      } catch (err) {
-        setBudgetErrorMessage(extractErrorMessage(err, 'Failed to create budget'))
-      } finally {
-        setIsBudgetSaving(false)
-      }
-    },
-    [query, queryClient]
-  )
-
-  const handleBudgetDelete = React.useCallback(
-    async (budgetId: string) => {
-      if (!budgetId) {
-        return
-      }
-      if (!window.confirm('Delete this budget period?')) {
-        return
-      }
-      setDeletingBudgetId(budgetId)
-      setBudgetDeletionError(null)
-      try {
-        await deleteCategoryBudget(budgetId)
-        await query.refetch()
-        queryClient.invalidateQueries({ queryKey: ['categories', 'summary'] })
-      } catch (err) {
-        setBudgetDeletionError(extractErrorMessage(err, 'Failed to delete budget'))
-      } finally {
-        setDeletingBudgetId(null)
-      }
-    },
-    [query, queryClient]
-  )
+  const { handleBudgetSubmit, handleBudgetDelete } = useCategoryMutations({
+    query,
+    queryClient,
+    setIsBudgetSaving,
+    setBudgetErrorMessage,
+    setBudgetSuccess,
+    setBudgetDeletionError,
+    setDeletingBudgetId,
+  })
 
   return {
     summary: query.data,
