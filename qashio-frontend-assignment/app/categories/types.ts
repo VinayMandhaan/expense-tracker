@@ -19,3 +19,9 @@ export interface Category {
   id: string
   name: string
 }
+
+export interface CategoryStats {
+  totalCategories: number
+  totalBudget: number
+  totalRemaining: number
+}

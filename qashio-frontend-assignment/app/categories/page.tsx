@@ -24,21 +24,13 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import { useCategoriesSummary } from './hooks/useCategoriesSummary';
 import CategoryRow from './components/CategoryRow';
 import CategoryTableHead from './components/CategoryTableHead';
+import { getCategoryStats } from './utils/categoryUtils';
 
 export default function CategoriesPage() {
   const router = useRouter()
   const { data, isLoading, isError, error, refetch, isFetching } = useCategoriesSummary()
   const summaries = data ? data : []
-  const stats = React.useMemo(() => {
-    const totalCategories = summaries.length
-    const totalBudget = summaries.reduce((sum, summary) => sum + (summary.currentBudget?.amount ? summary.currentBudget?.amount : 0), 0)
-    const totalRemaining = summaries.reduce((sum, summary) => sum + (summary.currentBudget?.remaining ? summary.currentBudget?.remaining : 0), 0)
-    return {
-      totalCategories,
-      totalBudget,
-      totalRemaining,
-    };
-  }, [summaries])
+  const stats = React.useMemo(() => getCategoryStats(summaries), [summaries])
 
   return (
     <>
