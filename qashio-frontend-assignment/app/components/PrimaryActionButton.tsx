@@ -7,11 +7,13 @@ type PrimaryActionButtonProps = ButtonProps;
 export default function PrimaryActionButton({
   children,
   sx,
+  type = 'button',
   ...props
 }: PrimaryActionButtonProps) {
   return (
     <Button
       variant="outlined"
+      type={type}
       {...props}
       sx={{
         textTransform: 'none',

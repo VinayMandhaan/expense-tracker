@@ -19,8 +19,14 @@ export function useTransactionDrawer({ selectedData, onUpdated, onDeleted, onClo
     const { data: categories = [], isLoading: isCategoryLoading } = useCategories()
     const [isEditing, setIsEditing] = React.useState(false)
     const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+    const previousIdRef = React.useRef<string | null>(null)
 
     React.useEffect(() => {
+        const currentId = selectedData?.id ?? null
+        if (previousIdRef.current === currentId) {
+            return
+        }
+        previousIdRef.current = currentId
         setIsEditing(false)
         setErrorMessage(null)
     }, [selectedData])

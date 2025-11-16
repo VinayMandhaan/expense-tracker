@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { Button, Stack, Typography } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
@@ -13,6 +14,7 @@ interface DrawerFooterProps {
     onCancelEdit: () => void
     onConfirmEdit: () => void
     onDelete: () => void
+    formId?: string
 }
 
 export default function DrawerFooter({
@@ -23,7 +25,14 @@ export default function DrawerFooter({
     onCancelEdit,
     onConfirmEdit,
     onDelete,
+    formId,
 }: DrawerFooterProps) {
+    const handleSaveClick = React.useCallback(() => {
+        if (!formId) return
+        const formElement = document.getElementById(formId) as HTMLFormElement | null
+        formElement?.requestSubmit()
+    }, [formId])
+
     return (
         <Stack direction="column" alignItems="center" justifyContent="space-between" spacing={2}>
             <Typography variant="caption" color="text.secondary">
@@ -36,10 +45,10 @@ export default function DrawerFooter({
                             Cancel
                         </Button>
                         <PrimaryActionButton
-                            type="submit"
-                            form="transaction-drawer-form"
+                            type="button"
                             startIcon={<SaveIcon />}
                             disabled={isSaving}
+                            onClick={handleSaveClick}
                         >
                             {isSaving ? 'Saving' : 'Save changes'}
                         </PrimaryActionButton>
@@ -55,7 +64,7 @@ export default function DrawerFooter({
                         >
                             {isDeleting ? 'Deleting' : 'Delete'}
                         </Button>
-                        <PrimaryActionButton startIcon={<EditIcon />} onClick={onConfirmEdit}>
+                        <PrimaryActionButton type="button" startIcon={<EditIcon />} onClick={onConfirmEdit}>
                             Edit
                         </PrimaryActionButton>
                     </>

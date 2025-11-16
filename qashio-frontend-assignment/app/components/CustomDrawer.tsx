@@ -95,6 +95,7 @@ export default function CustomDrawer({ open, onClose, selectedData, onUpdated, o
                             onCancelEdit={cancelEditing}
                             onConfirmEdit={startEditing}
                             onDelete={handleDelete}
+                            formId={FORM_ID}
                         />
                     </Box>
                 )}
