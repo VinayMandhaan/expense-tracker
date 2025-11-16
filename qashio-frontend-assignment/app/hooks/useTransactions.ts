@@ -2,9 +2,8 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
-import type { Paginated } from '@/app/types';
 import { Transaction, UseTransactionsOptions } from '../transactions/types';
+import { getTransactions } from '../transactions/request/transactionRequest';
 
 export function useTransactions(options: UseTransactionsOptions) {
   const params = useMemo(() => {
@@ -29,7 +28,7 @@ export function useTransactions(options: UseTransactionsOptions) {
 
   return useQuery({
     queryKey: ['transactions', options.page, options.limit, options.search ? options.search : '', options.type ? options.type : '', options.categoryId ? options.categoryId : '', options.sort ? options.sort : ''],
-    queryFn: () => apiGet<Paginated<Transaction>>(`/transactions?${params}`),
+    queryFn: () => getTransactions(params),
     placeholderData: (previous) => previous,
   })
 }

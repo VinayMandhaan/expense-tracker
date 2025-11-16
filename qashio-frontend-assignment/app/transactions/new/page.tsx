@@ -6,12 +6,12 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import PrimaryActionButton from '@/app/components/PrimaryActionButton';
 import { useRouter } from 'next/navigation';
-import { apiSend } from '@/lib/api';
 import { extractErrorMessage, toApiDate } from '@/lib/utils';
 import TransactionForm from '@/app/transactions/components/TransactionForm';
 import { useCategories } from '@/app/hooks/useCategories';
 import PageHeader from '@/app/components/PageHeader';
 import { TransactionFormValues } from '../types';
+import { createTransaction } from '../request/transactionRequest';
 
 export default function CreateTransactionPage() {
   const router = useRouter()
@@ -26,7 +26,7 @@ export default function CreateTransactionPage() {
     try {
       setSaving(true)
       setTransactionError(null)
-      await apiSend('/transactions', 'POST', {
+      await createTransaction({
         amount: values.amount,
         date: toApiDate(values.date),
         type: values.type,
