@@ -7,7 +7,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { GridPaginationModel, GridSortModel } from '@mui/x-data-grid';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import TransactionDrawer from '../components/TransactionDrawer';
+import CustomDrawer from '../components/CustomDrawer';
 import PrimaryActionButton from '../components/PrimaryActionButton';
 import { useCategories } from '../hooks/useCategories';
 import { useTransactions } from '../hooks/useTransactions';
@@ -199,7 +199,7 @@ export default function TransactionsPage() {
           )}
         </Paper>
       </Box>
-      <TransactionDrawer
+      <CustomDrawer
         open={open}
         onClose={() => setOpen(false)}
         selectedData={selected}
