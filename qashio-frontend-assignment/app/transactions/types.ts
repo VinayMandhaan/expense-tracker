@@ -1,4 +1,5 @@
-import { Category, TransactionType } from "../types";
+import { Category } from "../categories/types";
+import { TransactionType } from "../types";
 
 export type FilterOption = { label: string; value: string }
 export interface TransactionFormValues {

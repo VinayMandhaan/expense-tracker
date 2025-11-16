@@ -4,84 +4,30 @@ import * as React from 'react';
 import {
   Box,
   Stack,
-  Typography,
   Paper,
   Table,
   TableBody,
-  TableCell,
   TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  LinearProgress,
-  CircularProgress,
-  Alert,
   Button,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PrimaryActionButton from '../components/PrimaryActionButton';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { CategorySummary } from '../types';
-import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { CustomCard } from '../components/CustomCard';
-
-
-const RenderCategory = ({ summary }: { summary: CategorySummary }) => {
-  const router = useRouter()
-  const currentBudget = summary.currentBudget
-  const progress = currentBudget && currentBudget.amount > 0 ? Math.min(100, (currentBudget.spent / currentBudget.amount) * 100) : 0
-  const statusLabel = currentBudget ? currentBudget.remaining >= 0 ? 'On Track' : 'Exceeded' : 'No Budget'
-  const statusColor = currentBudget ? currentBudget.remaining >= 0 ? 'success' : 'error' : 'default'
-
-  return (
-    <TableRow
-      hover
-      onClick={() => {
-        router.push(`/categories/${summary.category.id}`)
-      }}
-      sx={{ cursor: 'pointer' }}
-    >
-      <TableCell sx={{ fontWeight: 600 }}>{summary.category.name}</TableCell>
-      <TableCell>
-        {currentBudget ? (
-          <Stack spacing={1}>
-            <Typography fontWeight={600}>{formatCurrency(currentBudget.amount)}</Typography>
-            <Typography variant="caption" color="text.secondary">{currentBudget.startDate} – {currentBudget.endDate}</Typography>
-          </Stack>
-        ) : (
-          <Typography color="text.secondary">No active budget</Typography>
-        )}
-      </TableCell>
-      <TableCell>{formatCurrency(summary.totalSpent)}</TableCell>
-      <TableCell>{currentBudget ? formatCurrency(currentBudget.remaining) : '—'}</TableCell>
-      <TableCell>
-        {currentBudget && (
-          <Stack spacing={1}>
-            <LinearProgress variant="determinate" value={progress} sx={{ height: 6, borderRadius: 999 }} />
-            <Typography variant="caption" color="text.secondary"> {progress.toFixed(0)}% used</Typography>
-          </Stack>
-        )}
-      </TableCell>
-      <TableCell>
-        <Chip
-          label={statusLabel}
-          color={statusColor as any}
-          size="small"
-        />
-      </TableCell>
-    </TableRow>
-  )
-}
+import PageHeader from '../components/PageHeader';
+import LoadingState from '../components/LoadingState';
+import ErrorState from '../components/ErrorState';
+import EmptyState from '../components/EmptyState';
+import LoadingOverlay from '../components/LoadingOverlay';
+import { useCategoriesSummary } from './hooks/useCategoriesSummary';
+import CategoryRow from './components/CategoryRow';
+import CategoryTableHead from './components/CategoryTableHead';
 
 export default function CategoriesPage() {
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['categories', 'summary'],
-    queryFn: () => apiGet<CategorySummary[]>('/categories/summary'),
-  })
-
+  const router = useRouter()
+  const { data, isLoading, isError, error, refetch, isFetching } = useCategoriesSummary()
   const summaries = data ? data : []
   const stats = React.useMemo(() => {
     const totalCategories = summaries.length
@@ -96,25 +42,11 @@ export default function CategoriesPage() {
 
   return (
     <>
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        alignItems={{ xs: 'flex-start', md: 'center' }}
-        justifyContent="space-between"
-        sx={{ p: 4, borderBottom: '1px solid #f0f0f0', gap: 2 }}
-      >
-        <Stack spacing={0.5}>
-          <Typography variant="h4" fontWeight={600}>
-            Categories
-          </Typography>
-          <Typography color="text.secondary">
-            Track budgets and spending per category.
-          </Typography>
-        </Stack>
-        <PrimaryActionButton startIcon={<AddIcon />} component={Link} href="/categories/new">
-          New Category
-        </PrimaryActionButton>
-      </Stack>
-
+      <PageHeader title="Categories" description="Track budgets and spending per category."
+        action={(
+          <PrimaryActionButton startIcon={<AddIcon />} component={Link} href="/categories/new">New Category</PrimaryActionButton>
+        )}
+      />
       <Box sx={{ p: 4, pt: 3 }}>
         <Stack spacing={3}>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
@@ -132,75 +64,30 @@ export default function CategoriesPage() {
               overflow: 'hidden',
             }}
           >
-            {isFetching && !isLoading && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  bgcolor: 'rgba(255,255,255,0.6)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 1,
-                  pointerEvents: 'none',
-                }}
-              >
-                <Stack spacing={1} alignItems="center">
-                  <CircularProgress size={24} />
-                  <Typography variant="caption" color="text.secondary">
-                    Updating…
-                  </Typography>
-                </Stack>
-              </Box>
-            )}
+            {isFetching && !isLoading && <LoadingOverlay message="Updating" />}
             {isLoading ? (
-              <Stack alignItems="center" justifyContent="center" py={6} spacing={2}>
-                <CircularProgress size={32} />
-                <Typography color="text.secondary">Loading categories…</Typography>
-              </Stack>
+              <LoadingState message="Loading categories…" />
             ) : isError ? (
-              <Stack alignItems="center" justifyContent="center" py={6} spacing={2}>
-                <Alert severity="error" sx={{ width: '100%', maxWidth: 400 }}>
-                  Failed to load categories
-                  <Typography variant="body2" color="text.secondary">
-                    {error instanceof Error ? error.message : 'Something went wrong'}
-                  </Typography>
-                </Alert>
-                <Button variant="contained" onClick={() => refetch()}>
-                  Retry
-                </Button>
-              </Stack>
+              <ErrorState
+                title="Failed to load categories" description={error instanceof Error ? error.message : 'Something went wrong'}
+                action={(
+                  <Button variant="contained" onClick={() => refetch()}>Retry</Button>
+                )}
+              />
             ) : summaries.length === 0 ? (
-              <Stack alignItems="center" justifyContent="center" py={6} spacing={1}>
-                <Typography fontWeight={600}>No categories yet</Typography>
-                <Typography color="text.secondary" variant="body2">
-                  Create your first category to start tracking budgets.
-                </Typography>
-                <PrimaryActionButton
-                  startIcon={<AddIcon />}
-                  component={Link}
-                  href="/categories/new"
-                  sx={{ mt: 1 }}
-                >
-                  New Category
-                </PrimaryActionButton>
-              </Stack>
+              <EmptyState
+                title="No categories yet" description="Create your first category to start tracking budgets."
+                action={(
+                  <PrimaryActionButton startIcon={<AddIcon />} component={Link} href="/categories/new" sx={{ mt: 1 }}>New Category</PrimaryActionButton>
+                )}
+              />
             ) : (
               <TableContainer>
                 <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Category</TableCell>
-                      <TableCell>Current Budget</TableCell>
-                      <TableCell>Total Spent</TableCell>
-                      <TableCell>Remaining</TableCell>
-                      <TableCell>Utilization</TableCell>
-                      <TableCell>Status</TableCell>
-                    </TableRow>
-                  </TableHead>
+                  <CategoryTableHead />
                   <TableBody>
                     {summaries.map((summary) => (
-                      <RenderCategory key={summary.category.id} summary={summary} />
+                      <CategoryRow key={summary.category.id} summary={summary} onSelect={(id) => router.push(`/categories/${id}`)} />
                     ))}
                   </TableBody>
                 </Table>

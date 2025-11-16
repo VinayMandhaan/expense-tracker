@@ -8,21 +8,6 @@ export interface TransactionFilters {
   searchTerm: string
 }
 
-export interface Category {
-  id: string
-  name: string
-}
-
-export interface Transaction {
-  id: string
-  amount: number
-  date: string
-  type: TransactionType
-  category: Category | null
-  createdAt: string
-  updatedAt: string
-}
-
 export interface Paginated<T> {
   items: T[]
   meta: {
@@ -33,18 +18,3 @@ export interface Paginated<T> {
   }
 }
 
-export interface BudgetPeriod {
-  id: string
-  amount: number
-  startDate: string
-  endDate: string
-  spent: number
-  remaining: number
-}
-
-export interface CategorySummary {
-  category: Category
-  totalSpent: number
-  budgets: BudgetPeriod[]
-  currentBudget: BudgetPeriod | null
-}
