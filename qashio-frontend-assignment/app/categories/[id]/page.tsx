@@ -19,7 +19,6 @@ export default function CategoryDetailPage() {
   const router = useRouter()
   const params = useParams<{ id: string }>()
   const categoryId = params?.id
-
   const {
     summary,
     isLoading,
@@ -94,7 +93,7 @@ export default function CategoryDetailPage() {
     if (isLoading || !summary) {
       return (
         <PageContainer>
-          <LoadingState message="Loading categor" />
+          <LoadingState message="Loading category" />
         </PageContainer>
       )
     }
@@ -111,7 +110,7 @@ export default function CategoryDetailPage() {
 
   return (
     <>
-      <PageHeader title={summary?.category.name ?? 'Category'} prefix={btnComponent} action={headerAction} />
+      <PageHeader title={summary?.category.name ? 'Category' : ''} prefix={btnComponent} action={headerAction} />
       {renderState()}
       {summary && (
         <CategoryBudgetDialog
