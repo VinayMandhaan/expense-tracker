@@ -9,9 +9,10 @@ import PrimaryActionButton from '@/app/components/PrimaryActionButton'
 import PageHeader from '@/app/components/PageHeader'
 import ErrorState from '@/app/components/ErrorState'
 import LoadingState from '@/app/components/LoadingState'
+import AppDialog from '@/app/components/dialogs/AppDialog'
 import { extractErrorMessage } from '@/lib/utils'
-import CategoryBudgetDialog from '@/app/categories/components/CategoryBudgetDialog'
 import CategoryDetailContent from '@/app/categories/components/CategoryDetailContent'
+import BudgetDialogContent from '@/app/categories/components/BudgetDialogContent'
 import { useCategoryDetail } from '@/app/categories/hooks/useCategoryDetail'
 import { PageContainer } from '../components/PageContainer';
 
@@ -104,14 +105,38 @@ export default function CategoryDetailPage() {
       <PageHeader title={summary?.category.name ? 'Category' : ''} prefix={btnComponent} action={headerAction} />
       {renderState()}
       {summary && (
-        <CategoryBudgetDialog
+        <AppDialog
           open={budgetDialogOpen}
-          success={budgetState.budgetSuccess}
-          isSaving={budgetState.isBudgetSaving}
-          errorMessage={budgetState.budgetErrorMessage}
           onClose={closeBudgetDialog}
-          onSubmit={handleBudgetSubmit}
-        />
+          maxWidth="sm"
+          fullWidth
+          dividers
+          title={budgetState.budgetSuccess ? 'Budget Added' : 'Add a Budget'}
+          actions={
+            budgetState.budgetSuccess ? (
+              <PrimaryActionButton onClick={closeBudgetDialog}>Done</PrimaryActionButton>
+            ) : (
+              <>
+                <Button onClick={closeBudgetDialog} disabled={budgetState.isBudgetSaving}>
+                  Cancel
+                </Button>
+                <PrimaryActionButton type="submit" form="category-budget-form" disabled={budgetState.isBudgetSaving}>
+                  {budgetState.isBudgetSaving ? 'Saving...' : 'Save Budget'}
+                </PrimaryActionButton>
+              </>
+            )
+          }
+        >
+          <BudgetDialogContent
+            showForm={!budgetState.budgetSuccess}
+            success={budgetState.budgetSuccess}
+            errorMessage={budgetState.budgetErrorMessage}
+            isSaving={budgetState.isBudgetSaving}
+            onSubmit={handleBudgetSubmit}
+            formId="category-budget-form"
+            successDescription="Budget updates will appear in this category overview right away."
+          />
+        </AppDialog>
       )}
     </>
   )
