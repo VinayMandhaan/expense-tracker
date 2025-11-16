@@ -22,6 +22,7 @@ interface Props {
 
 
 export default function CustomDrawer({ open, onClose, selectedData, onUpdated, onDeleted }: Props) {
+    const headerTitle = selectedData?.category?.name ? selectedData?.category?.name : 'Details'
     const {
         categories,
         isCategoryLoading,
@@ -36,9 +37,6 @@ export default function CustomDrawer({ open, onClose, selectedData, onUpdated, o
         detailItems,
         lastUpdatedLabel,
     } = useTransactionDrawer({ selectedData, onUpdated, onDeleted, onClose })
-
-    const headerTitle = selectedData?.category?.name ?? 'Details'
-
     return (
         <Drawer
             anchor="right"

@@ -51,18 +51,14 @@ export default function CategoryDetailPage() {
   )
 
   const headerAction = summary ? (
-    <PrimaryActionButton startIcon={<AddIcon />} onClick={openBudgetDialog}>
-      Add Budget
-    </PrimaryActionButton>
+    <PrimaryActionButton startIcon={<AddIcon />} onClick={openBudgetDialog}>Add Budget</PrimaryActionButton>
   ) : undefined
 
   const renderState = () => {
     if (!categoryId) {
       return (
         <PageContainer>
-          <ErrorState
-            title="Invalid category"
-            description="Please select a valid category to view details."
+          <ErrorState title="Invalid category" description="Please select a valid category to view details."
             action={(<Button onClick={() => router.push('/categories')} startIcon={<ArrowBackIcon />}>Back to categories</Button>)}
           />
         </PageContainer>
@@ -73,16 +69,11 @@ export default function CategoryDetailPage() {
       return (
         <PageContainer>
           <ErrorState
-            title="Failed to load category"
-            description={extractErrorMessage(error, 'Something went wrong')}
+            title="Failed to load category" description={extractErrorMessage(error, 'Something went wrong')}
             action={(
               <Stack direction="row" spacing={1} justifyContent="center">
-                <PrimaryActionButton onClick={() => refetch()}>
-                  Retry
-                </PrimaryActionButton>
-                <Button onClick={() => router.push('/categories')} startIcon={<ArrowBackIcon />}>
-                  Back
-                </Button>
+                <PrimaryActionButton onClick={() => refetch()}>Retry</PrimaryActionButton>
+                <Button onClick={() => router.push('/categories')} startIcon={<ArrowBackIcon />}>Back</Button>
               </Stack>
             )}
           />
