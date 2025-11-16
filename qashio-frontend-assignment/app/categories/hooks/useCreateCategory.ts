@@ -1,9 +1,9 @@
 import * as React from 'react'
-import { apiSend } from '@/lib/api'
 import { extractErrorMessage, toApiDate } from '@/lib/utils'
 import { Category } from '../types'
 import { CategoryFormValues } from '../components/CategoryForm'
 import { BudgetFormValues } from '../components/BudgetForm'
+import { createCategory, createCategoryBudget } from '../request/categoryRequest'
 
 interface UseCreateCategoryOptions {
   onFinished: () => void
@@ -26,7 +26,7 @@ export function useCreateCategory({ onFinished }: UseCreateCategoryOptions) {
     setSubmitError(null)
     setIsSaving(true)
     try {
-      const category = await apiSend<Category>('/categories', 'POST', { name: name.trim() })
+      const category = await createCategory({ name: name.trim() })
       setCreatedCategory(category)
       setShowBudgetForm(false)
       setBudgetSuccess(false)
@@ -59,7 +59,7 @@ export function useCreateCategory({ onFinished }: UseCreateCategoryOptions) {
     setIsBudgetSaving(true)
     setBudgetError(null)
     try {
-      await apiSend('/budget', 'POST', {
+      await createCategoryBudget({
         amount: values.amount,
         categoryId: createdCategory.id,
         startDate: toApiDate(values.startDate),
