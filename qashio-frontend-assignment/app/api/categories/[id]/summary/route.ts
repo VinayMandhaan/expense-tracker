@@ -2,8 +2,13 @@ import { NextRequest } from 'next/server';
 
 const BASE = process.env.NEST_API_URL;
 
-export async function GET(_req: NextRequest, { params }: { params: { id?: string } }) {
-    const id = params?.id?.trim()
+interface RouteContext {
+    params: Promise<{ id?: string }>
+}
+
+export async function GET(_req: NextRequest, context: RouteContext) {
+    const { id: rawId } = await context.params
+    const id = rawId?.trim()
     try {
         const res = await fetch(`${BASE}/api/categories/${id}/summary`, { cache: 'no-store' })
         const body = await res.text()
