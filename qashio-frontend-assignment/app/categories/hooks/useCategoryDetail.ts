@@ -1,9 +1,10 @@
 import * as React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiGet, apiSend } from '@/lib/api'
+import { apiGet } from '@/lib/api'
 import { extractErrorMessage, toApiDate } from '@/lib/utils'
 import { CategorySummary } from '../types'
 import { BudgetFormValues } from '../components/BudgetForm'
+import { createCategoryBudget, deleteCategoryBudget } from '../request/categoryRequest'
 
 export function useCategoryDetail(categoryId?: string) {
   const queryClient = useQueryClient()
@@ -43,7 +44,7 @@ export function useCategoryDetail(categoryId?: string) {
       setIsBudgetSaving(true)
       setBudgetErrorMessage(null)
       try {
-        await apiSend('/budget', 'POST', {
+        await createCategoryBudget({
           amount: values.amount,
           categoryId: query.data.category.id,
           startDate: toApiDate(values.startDate),
@@ -72,7 +73,7 @@ export function useCategoryDetail(categoryId?: string) {
       setDeletingBudgetId(budgetId)
       setBudgetDeletionError(null)
       try {
-        await apiSend(`/budget/${budgetId}`, 'DELETE')
+        await deleteCategoryBudget(budgetId)
         await query.refetch()
         queryClient.invalidateQueries({ queryKey: ['categories', 'summary'] })
       } catch (err) {
