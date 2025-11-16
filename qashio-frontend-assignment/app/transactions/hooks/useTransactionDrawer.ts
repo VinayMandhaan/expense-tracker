@@ -1,9 +1,7 @@
 import * as React from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { extractErrorMessage } from '@/lib/utils'
 import { useCategories } from '../../hooks/useCategories'
-import { Transaction, TransactionFormValues } from '../types'
-import { deleteTransaction, updateTransaction } from '../request/transactionRequest'
+import { Transaction } from '../types'
+import { useTransactionMutations } from './useTransactionMutations'
 
 interface UseTransactionDrawerOptions {
     selectedData?: Transaction | null
@@ -18,7 +16,6 @@ export interface DrawerDetailItem {
 }
 
 export function useTransactionDrawer({ selectedData, onUpdated, onDeleted, onClose }: UseTransactionDrawerOptions) {
-    const queryClient = useQueryClient()
     const { data: categories = [], isLoading: isCategoryLoading } = useCategories()
     const [isEditing, setIsEditing] = React.useState(false)
     const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
@@ -28,50 +25,13 @@ export function useTransactionDrawer({ selectedData, onUpdated, onDeleted, onClo
         setErrorMessage(null)
     }, [selectedData])
 
-    const updateMutation = useMutation<Transaction, unknown, TransactionFormValues>({
-        mutationFn: (values) => {
-            if (!selectedData) {
-                throw new Error('No transaction selected')
-            }
-            if (!values.date) {
-                throw new Error('Date is required')
-            }
-            const payload = {
-                amount: values.amount,
-                date: values.date.toISOString().split('T')[0],
-                type: values.type,
-                categoryId: values.categoryId || undefined,
-            }
-            return updateTransaction(selectedData.id, payload)
-        },
-        onSuccess: (updated) => {
-            queryClient.invalidateQueries({ queryKey: ['transactions'] })
-            setIsEditing(false)
-            setErrorMessage(null)
-            onUpdated?.(updated)
-        },
-        onError: (err: any) => {
-            setErrorMessage(extractErrorMessage(err, 'Failed to update transaction'))
-        },
-    })
-
-    const deleteMutation = useMutation({
-        mutationFn: async () => {
-            if (!selectedData) throw new Error('No transaction selected')
-            await deleteTransaction(selectedData.id)
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['transactions'] })
-            setIsEditing(false)
-            setErrorMessage(null)
-            onClose()
-            if (selectedData) {
-                onDeleted?.(selectedData.id)
-            }
-        },
-        onError: (err: any) => {
-            setErrorMessage(extractErrorMessage(err, 'Failed to delete transaction'))
-        },
+    const { updateMutation, deleteMutation } = useTransactionMutations({
+        selectedData,
+        onUpdated,
+        onDeleted,
+        onClose,
+        resetEditingState: () => setIsEditing(false),
+        setErrorMessage,
     })
 
     const handleDelete = () => {
