@@ -15,3 +15,22 @@ export interface TransactionFormProps {
     isCategoryLoading?: boolean
     onSubmit: (values: TransactionFormValues) => void
 }
+
+export interface Transaction {
+    id: string
+    amount: number
+    date: string
+    type: TransactionType
+    category: Category | null
+    createdAt: string
+    updatedAt: string
+}
+
+export interface UseTransactionsOptions {
+    page: number
+    limit: number
+    search?: string
+    type?: string
+    categoryId?: string
+    sort?: string
+}

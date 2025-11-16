@@ -15,10 +15,10 @@ export interface Category {
 
 export interface Transaction {
   id: string
-  amount: string
+  amount: number
   date: string
   type: TransactionType
-  category?: Category
+  category: Category | null
   createdAt: string
   updatedAt: string
 }

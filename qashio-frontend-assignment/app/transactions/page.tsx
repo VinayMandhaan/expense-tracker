@@ -1,105 +1,49 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Box,
-  Paper,
-  Stack,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Chip,
-  MenuItem,
-} from '@mui/material';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Box, Paper, Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { DataGrid, GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid';
+import { GridPaginationModel, GridSortModel } from '@mui/x-data-grid';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import TransactionDrawer from '../components/TransactionDrawer';
 import PrimaryActionButton from '../components/PrimaryActionButton';
-import { Paginated, Transaction, Category } from '../types';
-import { useQuery } from '@tanstack/react-query';
-import { apiGet } from '@/lib/api';
-
-type FilterOption = { label: string; value: string }
-const typeOptions: FilterOption[] = [
-  { label: 'All', value: '' },
-  { label: 'Income', value: 'income' },
-  { label: 'Expense', value: 'expense' },
-]
-
-function FilterSelect({
-  label,
-  value,
-  options,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  value: string;
-  options: FilterOption[]
-  onChange: (value: string) => void
-  disabled?: boolean
-}) {
-  return (
-    <TextField
-      select
-      size="small"
-      label={label}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      disabled={disabled}
-      sx={{ minWidth: 150 }}
-    >
-      {options.map((option) => (
-        <MenuItem key={option.value || 'all'} value={option.value}>
-          {option.label}
-        </MenuItem>
-      ))}
-    </TextField>
-  )
-}
-
-function TypeChip({ type }: { type: Transaction['type'] }) {
-  const isIncome = type === 'income'
-  return (
-    <Chip
-      label={isIncome ? 'Income' : 'Expense'}
-      size="small"
-      sx={{
-        textTransform: 'capitalize',
-        fontWeight: 600,
-        borderRadius: 999,
-        px: 0.5,
-        bgcolor: isIncome ? 'rgba(65, 189, 141, 0.15)' : 'rgba(239, 83, 80, 0.15)',
-        color: isIncome ? '#1c8c62' : '#c62828',
-      }}
-    />
-  )
-}
+import { Transaction } from '../types';
+import { useCategories } from '../hooks/useCategories';
+import { useTransactions } from '../hooks/useTransactions';
+import { TransactionsFilters } from './components/TransactionsFilters';
+import { TransactionsTable } from './components/TransactionsTable';
+import type { FilterOption } from './types';
+import { typeOptions } from './constants';
+import PageHeader from '../components/PageHeader';
+import ErrorState from '../components/ErrorState';
+import LoadingState from '../components/LoadingState';
+import EmptyState from '../components/EmptyState';
+import { parseSortParam, sortModelToString, areSortModelsEqual } from './utils/sort.util';
+import { createTransactionQueryHandlers } from './utils/queryHandlers';
 
 export default function TransactionsPage() {
-  const [q, setQ] = useState('')
-  const [debouncedQ, setDebouncedQ] = useState('')
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const router = useRouter()
+  const initialSearch = searchParams.get('search') || ''
+  const [q, setQ] = useState(initialSearch)
+  const [debouncedQ, setDebouncedQ] = useState(initialSearch)
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<Transaction | null>(null)
+  const initialPage = Math.max(0, Number(searchParams.get('page') || '1') - 1)
+  const initialPageSize = Number(searchParams.get('limit') ?? '10')
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
-    page: 0,
-    pageSize: 10,
+    page: Number.isNaN(initialPage) ? 0 : initialPage,
+    pageSize: Number.isNaN(initialPageSize) ? 10 : initialPageSize,
   })
-  const [sortModel, setSortModel] = useState<GridSortModel>([
-    { field: 'date', sort: 'desc' },
-  ])
-  const [typeFilter, setTypeFilter] = useState<string>('')
-  const [categoryFilter, setCategoryFilter] = useState<string>('')
-
-  const formatAmount = useCallback((value?: string | number | null) => {
-    const amount = typeof value === 'number' ? value : typeof value === 'string' ? Number.parseFloat(value) : NaN
-    if (!Number.isFinite(amount)) return '-'
-    return amount.toLocaleString()
-  }, [])
+  const [sortModel, setSortModel] = useState<GridSortModel>(() => {
+    return parseSortParam(searchParams.get('sort'))
+  })
+  const [typeFilter, setTypeFilter] = useState<string>(searchParams.get('type') || '')
+  const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('categoryId') ?? '')
+  const lastSearchRef = useRef(initialSearch.trim())
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -108,11 +52,7 @@ export default function TransactionsPage() {
     return () => clearTimeout(handler)
   }, [q])
 
-  const { data: categoriesData, isLoading: isCategoriesLoading } = useQuery({
-    queryKey: ['categories', 'list'],
-    queryFn: () => apiGet<Category[]>('/categories'),
-  })
-
+  const { data: categoriesData, isLoading: isCategoriesLoading } = useCategories()
   const categoryOptions = useMemo<FilterOption[]>(() => {
     const opts = categoriesData?.map((category) => ({
       label: category.name,
@@ -120,177 +60,109 @@ export default function TransactionsPage() {
     })) ?? []
     return [{ label: 'All', value: '' }, ...opts]
   }, [categoriesData])
+  
+  const sortParam = useMemo(() => sortModelToString(sortModel), [sortModel])
 
-  const sortParam = useMemo(() => {
-    const activeSorts = sortModel.filter(item => item.sort)
-
-    const sortStrings = activeSorts.map(item => `${item.field}:${item.sort}`)
-
-    return sortStrings.join(',')
-  }, [sortModel])
-
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['transactions', paginationModel.page, paginationModel.pageSize, debouncedQ, typeFilter, categoryFilter, sortParam],
-    queryFn: () => {
-      const params = new URLSearchParams({
-        page: String(paginationModel.page + 1),
-        limit: String(paginationModel.pageSize),
-      })
-      if (debouncedQ.trim()) params.set('search', debouncedQ.trim())
-      if (typeFilter) params.set('type', typeFilter)
-      if (categoryFilter) params.set('categoryId', categoryFilter)
-      if (sortParam) params.set('sort', sortParam)
-      return apiGet<Paginated<Transaction>>(`/transactions?${params.toString()}`)
-    },
-    placeholderData: (prev) => prev
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useTransactions({
+    page: paginationModel.page + 1,
+    limit: paginationModel.pageSize,
+    search: debouncedQ,
+    type: typeFilter || undefined,
+    categoryId: categoryFilter || undefined,
+    sort: sortParam || undefined,
   })
 
   const rows = data?.items ?? []
   const totalRows = data?.meta.total ?? 0
   const errorMessage = error ? error.message : 'Something went wrong'
+  const {
+    resetToFirstPage,
+    handleSortModelChange,
+    handleTypeChange,
+    handleCategoryChange,
+    handlePaginationChange,
+    updateQueryParams,
+  } = createTransactionQueryHandlers({
+    searchParams,
+    pathname,
+    router,
+    setPaginationModel,
+    setSortModel,
+    setTypeFilter,
+    setCategoryFilter,
+  })
 
-  const resetToFirstPage = useCallback(() => {
-    setPaginationModel(prev => {
-      if (prev.page === 0) return prev
-      return { ...prev, page: 0 }
-    })
+  const handleRowClick = React.useCallback((transaction: Transaction) => {
+    setSelected(transaction)
+    setOpen(true)
   }, [])
 
-  const handleSortModelChange = useCallback(
-    (model: GridSortModel) => {
-      setSortModel(model)
-      resetToFirstPage()
-    },
-    [resetToFirstPage],
-  )
+  useEffect(() => {
+    const paramsSearch = searchParams.get('search') ?? ''
+    setQ((prev) => (prev === paramsSearch ? prev : paramsSearch))
+    setDebouncedQ((prev) => (prev === paramsSearch ? prev : paramsSearch))
+    const paramsType = searchParams.get('type') ?? ''
+    setTypeFilter((prev) => (prev === paramsType ? prev : paramsType))
+    const paramsCategory = searchParams.get('categoryId') ?? ''
+    setCategoryFilter((prev) => (prev === paramsCategory ? prev : paramsCategory))
+    const nextPage = Math.max(0, Number(searchParams.get('page') ?? '1') - 1)
+    const nextLimit = Number(searchParams.get('limit') ?? '10')
+    setPaginationModel((prev) => (
+      prev.page === nextPage && prev.pageSize === nextLimit
+        ? prev
+        : {
+          page: Number.isNaN(nextPage) ? 0 : nextPage,
+          pageSize: Number.isNaN(nextLimit) ? prev.pageSize : nextLimit,
+        }
+    ))
+    const nextSort = parseSortParam(searchParams.get('sort'))
+    setSortModel((prev) => (areSortModelsEqual(prev, nextSort) ? prev : nextSort))
+  }, [searchParams])
 
-  const handleTypeChange = useCallback(
-    (value: string) => {
-      setTypeFilter(value)
-      resetToFirstPage()
-    },
-    [resetToFirstPage],
-  )
-
-  const handleCategoryChange = useCallback(
-    (value: string) => {
-      setCategoryFilter(value)
-      resetToFirstPage()
-    },
-    [resetToFirstPage],
-  )
-
-  const columns: GridColDef[] = [
-    {
-      field: 'date',
-      headerName: 'Date',
-      flex: 1,
-      minWidth: 150,
-      valueGetter: (params) => params?.row?.date ?? '',
-      renderCell: (params) => (
-        <>
-          {params.row.date}
-        </>
-      ),
-    },
-    {
-      field: 'category',
-      headerName: 'Category',
-      flex: 1,
-      minWidth: 180,
-      sortable: false,
-      renderCell: (params) => (
-        <>
-          {params.row.category?.name ?? '-'}
-        </>
-      ),
-    },
-    {
-      field: 'type',
-      headerName: 'Type',
-      flex: 0.6,
-      minWidth: 140,
-      renderCell: (params) => <TypeChip type={params.row.type} />,
-      sortable: false,
-    },
-    {
-      field: 'amount',
-      headerName: 'Amount',
-      flex: 0.6,
-      minWidth: 150,
-      valueGetter: (params) => {
-        const amount = params?.row?.amount
-        return typeof amount === 'string' ? Number.parseFloat(amount) : amount ?? 0
-      },
-      renderCell: (params) => {
-        const formatted = formatAmount(params.row.amount)
-        return (
-          <>
-            {formatted === '-' ? '-' : `${formatted} AED`}
-          </>
-        )
-      },
-    },
-  ]
+  useEffect(() => {
+    const trimmed = debouncedQ.trim()
+    if (trimmed === lastSearchRef.current) {
+      return
+    }
+    lastSearchRef.current = trimmed
+    updateQueryParams({ search: trimmed || null, page: '1' })
+  }, [debouncedQ, updateQueryParams])
 
   return (
     <>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ p: 4, borderBottom: (theme) => `1px solid ${theme.palette.layout.borderLight}` }}
-      >
-        <Typography variant="h4" fontWeight={600}>
-          Transactions
-        </Typography>
-        <PrimaryActionButton
-          component={Link}
-          href="/transactions/new"
-          startIcon={<AddIcon />}
-        >
-          New Transaction
-        </PrimaryActionButton>
-      </Stack>
+      <PageHeader
+        title="Transactions"
+        description="Browse and manage company transactions."
+        action={(
+          <PrimaryActionButton
+            component={Link}
+            href="/transactions/new"
+            startIcon={<AddIcon />}
+          >
+            New Transaction
+          </PrimaryActionButton>
+        )}
+      />
 
       <Box sx={{ p: 4, pt: 3, flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={2}
-        >
-          <TextField
-            placeholder="Search using amount"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            sx={{ width: { xs: '100%', md: 300 } }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-              sx: {
-                borderRadius: 2,
-                height: 48,
-              },
-            }}
-          />
-          <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-            <FilterSelect
-              label="Type"
-              value={typeFilter}
-              options={typeOptions}
-              onChange={handleTypeChange}
-            />
-            <FilterSelect
-              label="Category"
-              value={categoryFilter}
-              options={categoryOptions}
-              onChange={handleCategoryChange}
-              disabled={isCategoriesLoading && categoryOptions.length === 1}
-            />
-          </Stack>
-        </Stack>
+        <TransactionsFilters
+          search={q}
+          onSearchChange={setQ}
+          typeValue={typeFilter}
+          onTypeChange={handleTypeChange}
+          categoryValue={categoryFilter}
+          onCategoryChange={handleCategoryChange}
+          typeOptions={typeOptions}
+          categoryOptions={categoryOptions}
+          isCategoryLoading={isCategoriesLoading}
+        />
 
         <Paper
           variant="outlined"
@@ -302,67 +174,31 @@ export default function TransactionsPage() {
           }}
         >
           {isError ? (
-            <Stack alignItems="center" justifyContent="center" py={8} spacing={2}>
-              <Typography color="error.main" fontWeight={600}>
-                Failed to load transactions
-              </Typography>
-              <Typography color="text.secondary" variant="body2">
-                {errorMessage}
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<RefreshIcon />}
-                onClick={() => refetch()}
-                sx={{ textTransform: 'none', borderRadius: 2 }}
-              >
-                Retry
-              </Button>
-            </Stack>
-          ) : data?.items?.length == 0 ? (
-            <Stack alignItems="center" justifyContent="center" py={6} spacing={1}>
-              <Typography fontWeight={600}>No transactions yet</Typography>
-              <Typography color="text.secondary" variant="body2">
-                Create your first transaction to start tracking budgets.
-              </Typography>
-              <PrimaryActionButton
-                startIcon={<AddIcon />}
-                component={Link}
-                href="/transactions/new"
-                sx={{ mt: 1 }}
-              >
-                New Transaction
-              </PrimaryActionButton>
-            </Stack>
+            <ErrorState title="Failed to load transactions" description={errorMessage}
+              action={(
+                <Button variant="contained" startIcon={<RefreshIcon />} onClick={() => refetch()} sx={{ textTransform: 'none', borderRadius: 2 }}>Retry</Button>
+              )}
+            />
+          ) : isLoading && !data ? (
+            <LoadingState message="Loading transactions…" />
+          ) : rows.length === 0 ? (
+            <EmptyState title="No transactions yet" description="Create your first transaction to start tracking budgets."
+              action={(
+                <PrimaryActionButton startIcon={<AddIcon />} component={Link} href="/transactions/new" sx={{ mt: 1 }}>
+                  New Transaction
+                </PrimaryActionButton>
+              )}
+            />
           ) : (
-            <DataGrid
+            <TransactionsTable
               rows={rows}
               rowCount={totalRows}
-              getRowId={(row) => row.id}
-              columns={columns}
-              paginationMode="server"
-              sortingMode="server"
-              sortModel={sortModel}
               paginationModel={paginationModel}
-              onPaginationModelChange={setPaginationModel}
+              onPaginationChange={handlePaginationChange}
+              sortModel={sortModel}
               onSortModelChange={handleSortModelChange}
-              pageSizeOptions={[10, 25, 40]}
-              checkboxSelection
-              disableColumnMenu
-              disableRowSelectionOnClick
-              hideFooterSelectedRowCount
-              loading={isLoading || isFetching}
-              onRowClick={(params) => {
-                setSelected(params.row)
-                setOpen(true)
-              }}
-              sx={{
-                border: 'none',
-                '& .MuiDataGrid-columnHeaders': (theme) => ({
-                  bgcolor: '#fbfbfb',
-                  borderBottom: `1px solid ${theme.palette.layout.borderLight}`,
-                  color: '#737373',
-                }),
-              }}
+              loading={isFetching}
+              onRowClick={handleRowClick}
             />
           )}
         </Paper>
