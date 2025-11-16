@@ -9,12 +9,11 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import TransactionDrawer from '../components/TransactionDrawer';
 import PrimaryActionButton from '../components/PrimaryActionButton';
-import { Transaction } from '../types';
 import { useCategories } from '../hooks/useCategories';
 import { useTransactions } from '../hooks/useTransactions';
 import { TransactionsFilters } from './components/TransactionsFilters';
 import { TransactionsTable } from './components/TransactionsTable';
-import type { FilterOption } from './types';
+import type { FilterOption, Transaction } from './types';
 import { typeOptions } from './constants';
 import PageHeader from '../components/PageHeader';
 import ErrorState from '../components/ErrorState';
@@ -33,7 +32,7 @@ export default function TransactionsPage() {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<Transaction | null>(null)
   const initialPage = Math.max(0, Number(searchParams.get('page') || '1') - 1)
-  const initialPageSize = Number(searchParams.get('limit') ?? '10')
+  const initialPageSize = Number(searchParams.get('limit') || '10')
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: Number.isNaN(initialPage) ? 0 : initialPage,
     pageSize: Number.isNaN(initialPageSize) ? 10 : initialPageSize,
@@ -42,7 +41,7 @@ export default function TransactionsPage() {
     return parseSortParam(searchParams.get('sort'))
   })
   const [typeFilter, setTypeFilter] = useState<string>(searchParams.get('type') || '')
-  const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('categoryId') ?? '')
+  const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('categoryId') || '')
   const lastSearchRef = useRef(initialSearch.trim())
 
   useEffect(() => {
@@ -60,9 +59,8 @@ export default function TransactionsPage() {
     })) ?? []
     return [{ label: 'All', value: '' }, ...opts]
   }, [categoriesData])
-  
-  const sortParam = useMemo(() => sortModelToString(sortModel), [sortModel])
 
+  const sortParam = useMemo(() => sortModelToString(sortModel), [sortModel])
   const {
     data,
     isLoading,
@@ -105,15 +103,15 @@ export default function TransactionsPage() {
   }, [])
 
   useEffect(() => {
-    const paramsSearch = searchParams.get('search') ?? ''
+    const paramsSearch = searchParams.get('search') || ''
     setQ((prev) => (prev === paramsSearch ? prev : paramsSearch))
     setDebouncedQ((prev) => (prev === paramsSearch ? prev : paramsSearch))
-    const paramsType = searchParams.get('type') ?? ''
+    const paramsType = searchParams.get('type') || ''
     setTypeFilter((prev) => (prev === paramsType ? prev : paramsType))
-    const paramsCategory = searchParams.get('categoryId') ?? ''
+    const paramsCategory = searchParams.get('categoryId') || ''
     setCategoryFilter((prev) => (prev === paramsCategory ? prev : paramsCategory))
-    const nextPage = Math.max(0, Number(searchParams.get('page') ?? '1') - 1)
-    const nextLimit = Number(searchParams.get('limit') ?? '10')
+    const nextPage = Math.max(0, Number(searchParams.get('page') || '1') - 1)
+    const nextLimit = Number(searchParams.get('limit') || '10')
     setPaginationModel((prev) => (
       prev.page === nextPage && prev.pageSize === nextLimit
         ? prev
@@ -137,9 +135,7 @@ export default function TransactionsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Transactions"
-        description="Browse and manage company transactions."
+      <PageHeader title="Transactions" description="Browse and manage company transactions."
         action={(
           <PrimaryActionButton
             component={Link}
